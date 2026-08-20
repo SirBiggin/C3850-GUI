@@ -1,0 +1,29 @@
+<views:SwitchPage x:Class="C3850GUI.Views.LogsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:views="clr-namespace:C3850GUI.Views"
+      Title="Logs">
+    <Grid Margin="28,20,28,20">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <Grid>
+            <StackPanel>
+                <TextBlock Style="{StaticResource PageTitle}" Text="Logs" />
+                <TextBlock x:Name="Sub" Style="{StaticResource PageSubtitle}" Text="'show logging' buffer. Auto-refresh follows the interval in Settings." />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <ui:TextBox x:Name="FilterBox" Width="240" PlaceholderText="Filter (e.g. LINK-3, Te2/0/6)" Icon="{ui:SymbolIcon Search24}" TextChanged="Filter_Changed" />
+                <ui:ToggleSwitch x:Name="AutoRefresh" Margin="10,0,0,0" Content="Auto" Checked="Auto_Changed" Unchecked="Auto_Changed" />
+                <ui:Button Margin="8,0,0,0" Icon="{ui:SymbolIcon ArrowSync24}" Content="Refresh" Click="Refresh_Click" />
+            </StackPanel>
+        </Grid>
+        <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Broom24}" Content="Clear log buffer" Click="Clear_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Info24}" Content="Flap history (link up/down)" Click="Flaps_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Info24}" Content="Err-disable recovery" Click="ErrDisable_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Info24}" Content="Tech-support (slow)" Click="Tech_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Save24}" Content="Save to file" Click="Save_Click" />
+        </WrapPanel>
+        <TextBox x:Name="Log" Grid.Row="2" Style="{StaticResource MonoOutput}" />
+    </Grid>
+</views:SwitchPage>

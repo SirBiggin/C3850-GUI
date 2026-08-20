@@ -1,0 +1,41 @@
+<views:SwitchPage x:Class="C3850GUI.Views.ActivityPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:views="clr-namespace:C3850GUI.Views"
+      Title="Activity">
+    <Grid Margin="28,20,28,20">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="6" /><RowDefinition Height="220" /></Grid.RowDefinitions>
+        <Grid>
+            <StackPanel>
+                <TextBlock Style="{StaticResource PageTitle}" Text="Activity" />
+                <TextBlock Style="{StaticResource PageSubtitle}" Text="Every command this app sent, newest first. Select a row to see its full output." />
+            </StackPanel>
+            <ui:Button HorizontalAlignment="Right" VerticalAlignment="Top" Icon="{ui:SymbolIcon Broom24}" Content="Clear" Click="Clear_Click" />
+        </Grid>
+        <DataGrid x:Name="Grid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" FontSize="12.5" SelectionChanged="Grid_SelectionChanged">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Width="28">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Ellipse Width="9" Height="9">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#3FB950" />
+                                        <Style.Triggers><DataTrigger Binding="{Binding Error}" Value="True"><Setter Property="Fill" Value="#E54848" /></DataTrigger></Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Time" Binding="{Binding TimeText}" Width="80" />
+                <DataGridTextColumn Header="Switch" Binding="{Binding Switch}" Width="140" />
+                <DataGridTextColumn Header="Command" Binding="{Binding Command}" Width="360" FontFamily="{StaticResource MonoFont}" />
+                <DataGridTextColumn Header="Output" Binding="{Binding Summary}" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+        <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" Background="Transparent" />
+        <TextBox x:Name="Detail" Grid.Row="3" Style="{StaticResource MonoOutput}" />
+    </Grid>
+</views:SwitchPage>

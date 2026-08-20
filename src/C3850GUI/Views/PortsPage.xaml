@@ -1,0 +1,100 @@
+<views:SwitchPage x:Class="C3850GUI.Views.PortsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:views="clr-namespace:C3850GUI.Views"
+      Title="Ports">
+    <Grid Margin="28,20,28,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid>
+            <StackPanel>
+                <TextBlock Style="{StaticResource PageTitle}" Text="Ports" />
+                <TextBlock Style="{StaticResource PageSubtitle}" Text="Live from 'show interfaces status'. Select one or more rows to act on them." />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <ui:TextBox x:Name="FilterBox" Width="220" PlaceholderText="Filter (name, desc, vlan, status)" Icon="{ui:SymbolIcon Search24}" TextChanged="Filter_TextChanged" />
+                <ui:Button Margin="8,0,0,0" Icon="{ui:SymbolIcon ArrowSync24}" Content="Refresh" Click="Refresh_Click" />
+            </StackPanel>
+        </Grid>
+
+        <!-- front panel -->
+        <ui:Card Grid.Row="1" Padding="12" Margin="0,0,0,10">
+            <ItemsControl x:Name="Panel">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="0,2">
+                            <TextBlock Text="{Binding Key}" Width="54" VerticalAlignment="Center" Style="{StaticResource Muted}" />
+                            <ItemsControl ItemsSource="{Binding Value}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Width="22" Height="16" Margin="2" CornerRadius="3" Cursor="Hand"
+                                                Background="{Binding Status, Converter={StaticResource PortStatusBrush}}"
+                                                MouseLeftButtonDown="PortBox_Click" Tag="{Binding}">
+                                            <Border.ToolTip>
+                                                <TextBlock><Run Text="{Binding Name}" FontWeight="Bold" /><LineBreak /><Run Text="{Binding Description}" /><LineBreak /><Run Text="{Binding Status}" /><Run Text="  vlan " /><Run Text="{Binding Vlan}" /><Run Text="  " /><Run Text="{Binding Speed}" /></TextBlock>
+                                            </Border.ToolTip>
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter Property="BorderBrush" Value="White" /><Setter Property="BorderThickness" Value="2" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ui:Card>
+
+        <!-- actions -->
+        <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Play24}" Content="Enable" Click="Enable_Click" ToolTip="no shutdown" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Stop24}" Content="Disable" Click="Disable_Click" ToolTip="shutdown" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon ArrowCounterclockwise24}" Content="Bounce" Click="Bounce_Click" ToolTip="shutdown, wait, no shutdown" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Description" Click="Desc_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon BranchFork24}" Content="Access VLAN" Click="AccessVlan_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon BranchFork24}" Content="Trunk" Click="Trunk_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Flash24}" Content="PoE" Click="Poe_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Wrench24}" Content="Speed / Duplex" Click="SpeedDuplex_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Code24}" Content="Custom config…" Click="Custom_Click" ToolTip="Send any interface-mode lines to the selected ports" />
+            <Separator Margin="6,0,6,6" Width="1" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Info24}" Content="Details" Click="Details_Click" ToolTip="show interfaces X" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon DocumentText24}" Content="Running config" Click="RunConfig_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Timer24}" Content="Counters" Click="Counters_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Broom24}" Content="Clear counters" Click="ClearCounters_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Search24}" Content="MACs on port" Click="Macs_Click" />
+        </WrapPanel>
+
+        <DataGrid x:Name="Grid" Grid.Row="3" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended"
+                  CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  SelectionChanged="Grid_SelectionChanged" FontSize="12.5">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Width="28">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate><Ellipse Width="9" Height="9" Fill="{Binding Status, Converter={StaticResource PortStatusBrush}}" /></DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Port" Binding="{Binding Name}" Width="110" FontFamily="{StaticResource MonoFont}" />
+                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" />
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="110" />
+                <DataGridTextColumn Header="VLAN" Binding="{Binding Vlan}" Width="70" />
+                <DataGridTextColumn Header="Duplex" Binding="{Binding Duplex}" Width="80" />
+                <DataGridTextColumn Header="Speed" Binding="{Binding Speed}" Width="80" />
+                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="160" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</views:SwitchPage>

@@ -1,0 +1,133 @@
+<views:SwitchPage x:Class="C3850GUI.Views.ExplorerPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:views="clr-namespace:C3850GUI.Views"
+      xmlns:m="clr-namespace:C3850GUI.Models"
+      Title="Command Explorer">
+    <Grid Margin="28,20,28,20">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageTitle}" Text="Command Explorer" />
+            <TextBlock Style="{StaticResource PageSubtitle}"
+                       Text="Browses the switch's own parser tree live (it sends '?' for you), so every command and parameter your exact IOS-XE build supports is here. Pick a mode, expand, build, run." />
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380" MinWidth="260" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- left: mode + tree -->
+            <ui:Card Padding="10">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <ComboBox x:Name="ModeBox" SelectionChanged="Mode_Changed" Margin="0,0,0,6">
+                        <ComboBoxItem Content="Privileged EXEC  (Switch#)" IsSelected="True" Tag="" />
+                        <ComboBoxItem Content="Global config  (config)#" Tag="configure terminal" />
+                        <ComboBoxItem Content="Interface config  (config-if)#" Tag="configure terminal|interface {0}" />
+                        <ComboBoxItem Content="Interface range  (config-if-range)#" Tag="configure terminal|interface range {0}" />
+                        <ComboBoxItem Content="VLAN config  (config-vlan)#" Tag="configure terminal|vlan {0}" />
+                        <ComboBoxItem Content="Line config  (config-line)#" Tag="configure terminal|line {0}" />
+                        <ComboBoxItem Content="Router config  (config-router)#" Tag="configure terminal|router {0}" />
+                        <ComboBoxItem Content="Custom context…" Tag="{}{custom}" />
+                    </ComboBox>
+                    <ui:TextBox x:Name="ContextArg" Margin="0,0,0,6" PlaceholderText="e.g. GigabitEthernet1/0/1, vty 0 4, ospf 1" Visibility="Collapsed" KeyDown="ContextArg_KeyDown" />
+                    <ui:TextBox x:Name="CustomContext" Margin="0,0,0,6" PlaceholderText="Mode-entry commands separated by |  e.g. configure terminal|ip access-list extended TEST" Visibility="Collapsed" KeyDown="ContextArg_KeyDown" />
+                    <Grid Grid.Row="2" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <ui:TextBox x:Name="TreeFilter" PlaceholderText="Filter loaded tokens" Icon="{ui:SymbolIcon Search24}" TextChanged="TreeFilter_Changed" />
+                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Icon="{ui:SymbolIcon ArrowSync24}" ToolTip="Reload root" Click="ReloadRoot_Click" />
+                    </Grid>
+                    <TreeView x:Name="Tree" Grid.Row="3" BorderThickness="0" Background="Transparent" VirtualizingPanel.IsVirtualizing="True"
+                              SelectedItemChanged="Tree_SelectedItemChanged" TreeViewItem.Expanded="Tree_Expanded" MouseDoubleClick="Tree_DoubleClick">
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type m:CommandNode}" ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal" ToolTip="{Binding Help}">
+                                    <TextBlock Text="{Binding Token}" FontFamily="{StaticResource MonoFont}" FontSize="12.5" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsArgument}" Value="True"><Setter Property="Foreground" Value="#E0A030" /></DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsCr}" Value="True"><Setter Property="Foreground" Value="#3FB950" /></DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Help}" Margin="10,0,0,0" FontSize="11.5" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" MaxWidth="220" />
+                                    <ui:ProgressRing Width="12" Height="12" Margin="6,0,0,0" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Grid>
+            </ui:Card>
+
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent" />
+
+            <!-- right: builder + help + output -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="220" /><RowDefinition Height="6" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+
+                <ui:Card Padding="12" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock x:Name="ContextLabel" Style="{StaticResource Muted}" Text="Switch#" FontFamily="{StaticResource MonoFont}" Margin="0,0,0,4" />
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <ui:TextBox x:Name="CommandLine" FontFamily="{StaticResource MonoFont}" FontSize="13.5" PlaceholderText="Build a command from the tree, or type it here. Press ? (or Ctrl+Space) for help at the cursor, Enter to run." KeyDown="CommandLine_KeyDown" PreviewTextInput="CommandLine_PreviewTextInput" />
+                            <ui:Button Grid.Column="1" Margin="6,0,0,0" Content="?" FontWeight="Bold" ToolTip="Ask the switch what can come next" Click="Help_Click" />
+                            <ui:Button Grid.Column="2" Margin="6,0,0,0" Icon="{ui:SymbolIcon Add24}" ToolTip="Add to batch" Click="AddBatch_Click" />
+                            <ui:Button Grid.Column="3" Margin="6,0,0,0" Appearance="Primary" Icon="{ui:SymbolIcon Play24}" Content="Run" Click="Run_Click" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <TextBlock Grid.Row="1" Style="{StaticResource SectionTitle}" Text="What can come next  (double-click to append)" Margin="4,0,0,4" />
+                <ListView x:Name="HelpList" Grid.Row="2" MouseDoubleClick="HelpList_DoubleClick" FontSize="12.5" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Token" Width="220" DisplayMemberBinding="{Binding Token}" />
+                            <GridViewColumn Header="Description" Width="600" DisplayMemberBinding="{Binding Help}" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+
+                <GridSplitter Grid.Row="3" Height="6" HorizontalAlignment="Stretch" Background="Transparent" />
+
+                <Grid Grid.Row="4">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="260" /></Grid.ColumnDefinitions>
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Grid Margin="4,0,0,4">
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="Output" Margin="0" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <ui:Button Appearance="Transparent" Icon="{ui:SymbolIcon Copy24}" ToolTip="Copy output" Click="CopyOut_Click" Padding="6,2" />
+                                <ui:Button Appearance="Transparent" Icon="{ui:SymbolIcon Broom24}" ToolTip="Clear" Click="ClearOut_Click" Padding="6,2" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBox x:Name="Output" Grid.Row="1" Style="{StaticResource MonoOutput}" />
+                    </Grid>
+                    <ui:Card Grid.Column="1" Margin="8,0,0,0" Padding="10">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="Batch" />
+                            <ListBox x:Name="Batch" Grid.Row="1" FontFamily="{StaticResource MonoFont}" FontSize="12" BorderThickness="0" Background="Transparent" KeyDown="Batch_KeyDown" ToolTip="Select and press Delete to remove" />
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                <ui:Button Appearance="Primary" Icon="{ui:SymbolIcon Play24}" Content="Run batch" Click="RunBatch_Click" />
+                                <ui:Button Margin="6,0,0,0" Icon="{ui:SymbolIcon Broom24}" ToolTip="Clear batch" Click="ClearBatch_Click" />
+                            </StackPanel>
+                        </Grid>
+                    </ui:Card>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Grid>
+</views:SwitchPage>

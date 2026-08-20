@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DEBCBB9A-CB5E-4536-8D9D-F63DDC6DA8CC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "C3850GUI", "src\C3850GUI\C3850GUI.csproj", "{BB6558D1-9299-4996-863B-0927DEF08523}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BB6558D1-9299-4996-863B-0927DEF08523}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB6558D1-9299-4996-863B-0927DEF08523}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB6558D1-9299-4996-863B-0927DEF08523}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB6558D1-9299-4996-863B-0927DEF08523}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BB6558D1-9299-4996-863B-0927DEF08523} = {DEBCBB9A-CB5E-4536-8D9D-F63DDC6DA8CC}
+	EndGlobalSection
+EndGlobal

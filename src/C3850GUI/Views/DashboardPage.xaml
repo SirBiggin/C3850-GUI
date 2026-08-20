@@ -1,0 +1,99 @@
+<views:SwitchPage x:Class="C3850GUI.Views.DashboardPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:views="clr-namespace:C3850GUI.Views"
+      Title="Dashboard">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,20,28,20">
+        <StackPanel>
+            <Grid>
+                <StackPanel>
+                    <TextBlock x:Name="HostTitle" Style="{StaticResource PageTitle}" Text="Dashboard" />
+                    <TextBlock x:Name="HostSub" Style="{StaticResource PageSubtitle}" Text="Connect to a switch stack to see its status." />
+                </StackPanel>
+                <ui:Button HorizontalAlignment="Right" VerticalAlignment="Top" Icon="{ui:SymbolIcon ArrowSync24}" Content="Refresh" Click="Refresh_Click" />
+            </Grid>
+
+            <WrapPanel x:Name="Stats">
+                <Border Style="{StaticResource StatCard}">
+                    <StackPanel><TextBlock x:Name="StatPortsUp" Style="{StaticResource StatValue}" Text="—" /><TextBlock Style="{StaticResource StatLabel}" Text="PORTS UP" /></StackPanel>
+                </Border>
+                <Border Style="{StaticResource StatCard}">
+                    <StackPanel><TextBlock x:Name="StatPortsTotal" Style="{StaticResource StatValue}" Text="—" /><TextBlock Style="{StaticResource StatLabel}" Text="PORTS TOTAL" /></StackPanel>
+                </Border>
+                <Border Style="{StaticResource StatCard}">
+                    <StackPanel><TextBlock x:Name="StatErrDisabled" Style="{StaticResource StatValue}" Text="—" /><TextBlock Style="{StaticResource StatLabel}" Text="ERR-DISABLED" /></StackPanel>
+                </Border>
+                <Border Style="{StaticResource StatCard}">
+                    <StackPanel><TextBlock x:Name="StatMembers" Style="{StaticResource StatValue}" Text="—" /><TextBlock Style="{StaticResource StatLabel}" Text="STACK MEMBERS" /></StackPanel>
+                </Border>
+                <Border Style="{StaticResource StatCard}">
+                    <StackPanel><TextBlock x:Name="StatCpu" Style="{StaticResource StatValue}" Text="—" /><TextBlock Style="{StaticResource StatLabel}" Text="CPU (5s / 1m / 5m)" /></StackPanel>
+                </Border>
+                <Border Style="{StaticResource StatCard}">
+                    <StackPanel><TextBlock x:Name="StatMem" Style="{StaticResource StatValue}" Text="—" /><TextBlock Style="{StaticResource StatLabel}" Text="MEMORY USED" /></StackPanel>
+                </Border>
+                <Border Style="{StaticResource StatCard}">
+                    <StackPanel><TextBlock x:Name="StatPoe" Style="{StaticResource StatValue}" Text="—" /><TextBlock Style="{StaticResource StatLabel}" Text="POE USED / AVAIL (W)" /></StackPanel>
+                </Border>
+            </WrapPanel>
+
+            <Grid Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ui:Card Grid.Column="0" VerticalAlignment="Stretch">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="System" />
+                        <Grid x:Name="SysGrid">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="130" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Style="{StaticResource Muted}" Text="Hostname" /><TextBlock Grid.Row="0" Grid.Column="1" x:Name="SysHost" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="1" Style="{StaticResource Muted}" Text="Model" /><TextBlock Grid.Row="1" Grid.Column="1" x:Name="SysModel" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="2" Style="{StaticResource Muted}" Text="IOS-XE version" /><TextBlock Grid.Row="2" Grid.Column="1" x:Name="SysVersion" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="3" Style="{StaticResource Muted}" Text="Image" /><TextBlock Grid.Row="3" Grid.Column="1" x:Name="SysImage" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="4" Style="{StaticResource Muted}" Text="Uptime" /><TextBlock Grid.Row="4" Grid.Column="1" x:Name="SysUptime" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="5" Style="{StaticResource Muted}" Text="Last reload" /><TextBlock Grid.Row="5" Grid.Column="1" x:Name="SysReload" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="6" Style="{StaticResource Muted}" Text="Serial" /><TextBlock Grid.Row="6" Grid.Column="1" x:Name="SysSerial" TextWrapping="Wrap" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Grid.Column="2" VerticalAlignment="Stretch">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="Stack" />
+                        <ItemsControl x:Name="StackList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                            <Border Width="30" Height="30" CornerRadius="15" Background="{DynamicResource AccentFillColorDefaultBrush}" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Number}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Foreground="White" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock FontWeight="SemiBold"><Run Text="{Binding Role}" /><Run Text="  ·  priority " /><Run Text="{Binding Priority}" /></TextBlock>
+                                                <TextBlock Style="{StaticResource Muted}"><Run Text="{Binding Mac}" /><Run Text="  ·  v" /><Run Text="{Binding Version}" /></TextBlock>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding State}" VerticalAlignment="Center" Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ui:Card>
+            </Grid>
+
+            <ui:Card Margin="0,12,0,0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="Recent log" />
+                    <TextBox x:Name="RecentLog" Style="{StaticResource MonoOutput}" Height="220" />
+                </StackPanel>
+            </ui:Card>
+        </StackPanel>
+    </ScrollViewer>
+</views:SwitchPage>

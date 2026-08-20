@@ -1,0 +1,27 @@
+<views:SwitchPage x:Class="C3850GUI.Views.TerminalPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:views="clr-namespace:C3850GUI.Views"
+      xmlns:ctl="clr-namespace:C3850GUI.Controls"
+      Title="Terminal">
+    <Grid Margin="28,20,28,20">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <Grid Margin="0,0,0,10">
+            <StackPanel>
+                <TextBlock Style="{StaticResource PageTitle}" Text="Terminal" />
+                <TextBlock Style="{StaticResource PageSubtitle}" Text="Raw CLI on the same session the GUI uses — everything the app sends shows up here too. Tab completion and ? work. Right-click: copy selection / paste." />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <ComboBox x:Name="SessionPicker" Width="220" DisplayMemberPath="Profile.Display" SelectionChanged="SessionPicker_Changed" ToolTip="Which open session this terminal is attached to" />
+                <ui:Button Margin="6,0,0,0" Icon="{ui:SymbolIcon Broom24}" ToolTip="Clear screen (Ctrl+L)" Click="Clear_Click" />
+                <ui:Button Margin="6,0,0,0" Icon="{ui:SymbolIcon Save24}" ToolTip="Save scrollback to file" Click="Save_Click" />
+                <ui:Button Margin="6,0,0,0" Content="Ctrl+C" ToolTip="Send break (^C)" Click="Break_Click" />
+                <ui:Button Margin="6,0,0,0" Content="Ctrl+Z" ToolTip="Send ^Z (end)" Click="CtrlZ_Click" />
+            </StackPanel>
+        </Grid>
+        <Border x:Name="TermHost" Grid.Row="1" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" ClipToBounds="True">
+            <ctl:TerminalControl x:Name="Term" />
+        </Border>
+    </Grid>
+</views:SwitchPage>

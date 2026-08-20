@@ -1,0 +1,38 @@
+<views:SwitchPage x:Class="C3850GUI.Views.VlansPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:views="clr-namespace:C3850GUI.Views"
+      Title="VLANs">
+    <Grid Margin="28,20,28,20">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <Grid>
+            <StackPanel>
+                <TextBlock Style="{StaticResource PageTitle}" Text="VLANs" />
+                <TextBlock Style="{StaticResource PageSubtitle}" Text="From 'show vlan brief'. Ports listed are access members." />
+            </StackPanel>
+            <ui:Button HorizontalAlignment="Right" VerticalAlignment="Top" Icon="{ui:SymbolIcon ArrowSync24}" Content="Refresh" Click="Refresh_Click" />
+        </Grid>
+        <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+            <ui:Button Margin="0,0,6,6" Appearance="Primary" Icon="{ui:SymbolIcon Add24}" Content="Add VLAN" Click="Add_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Rename" Click="Rename_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Delete24}" Content="Delete" Click="Delete_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Info24}" Content="SVI / interface Vlan" Click="Svi_Click" ToolTip="show ip interface brief | include Vlan" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Add24}" Content="Create SVI…" Click="CreateSvi_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon DocumentText24}" Content="Trunks" Click="Trunks_Click" ToolTip="show interfaces trunk" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon DocumentText24}" Content="Spanning tree" Click="Stp_Click" />
+        </WrapPanel>
+        <DataGrid x:Name="Grid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" FontSize="12.5">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70" FontFamily="{StaticResource MonoFont}" />
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="240" />
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" />
+                <DataGridTemplateColumn Header="Ports" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate><TextBlock Text="{Binding Ports}" TextWrapping="Wrap" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Padding="0,4" /></DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</views:SwitchPage>

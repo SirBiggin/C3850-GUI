@@ -1,0 +1,35 @@
+<views:SwitchPage x:Class="C3850GUI.Views.ConfigPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:views="clr-namespace:C3850GUI.Views"
+      Title="Configuration">
+    <Grid Margin="28,20,28,20">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <Grid>
+            <StackPanel>
+                <TextBlock Style="{StaticResource PageTitle}" Text="Configuration" />
+                <TextBlock x:Name="Sub" Style="{StaticResource PageSubtitle}" Text="Running / startup config, backups, and bulk config push." />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <ui:TextBox x:Name="FindBox" Width="220" PlaceholderText="Find in config (Enter = next)" Icon="{ui:SymbolIcon Search24}" KeyDown="Find_KeyDown" />
+                <ui:Button Margin="8,0,0,0" Icon="{ui:SymbolIcon ArrowSync24}" Content="Refresh" Click="Refresh_Click" />
+            </StackPanel>
+        </Grid>
+        <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+            <ui:Button Margin="0,0,6,6" Appearance="Primary" Icon="{ui:SymbolIcon Save24}" Content="Save (write memory)" Click="Save_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon ArrowDownload24}" Content="Backup to file" Click="Backup_Click" ToolTip="Saves running-config to the local backups folder" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon FolderOpen24}" Content="Open backups folder" Click="OpenBackups_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon DocumentCopy24}" Content="Diff running vs startup" Click="Diff_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon DocumentCopy24}" Content="Diff vs backup file…" Click="DiffFile_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon ArrowUpload24}" Content="Push config lines…" Click="Push_Click" ToolTip="Paste a block of configuration and send it in configure terminal" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Copy24}" Content="Copy" Click="Copy_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon ArrowCounterclockwise24}" Content="Archive / rollback" Click="Archive_Click" ToolTip="show archive" />
+        </WrapPanel>
+        <TabControl Grid.Row="2">
+            <TabItem Header="Running config"><TextBox x:Name="Running" Style="{StaticResource MonoOutput}" /></TabItem>
+            <TabItem Header="Startup config"><TextBox x:Name="Startup" Style="{StaticResource MonoOutput}" /></TabItem>
+            <TabItem Header="Diff / result"><TextBox x:Name="Result" Style="{StaticResource MonoOutput}" /></TabItem>
+        </TabControl>
+    </Grid>
+</views:SwitchPage>

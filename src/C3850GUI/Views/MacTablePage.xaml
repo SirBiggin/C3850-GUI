@@ -1,0 +1,35 @@
+<views:SwitchPage x:Class="C3850GUI.Views.MacTablePage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:views="clr-namespace:C3850GUI.Views"
+      Title="MAC Table">
+    <Grid Margin="28,20,28,20">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <Grid>
+            <StackPanel>
+                <TextBlock Style="{StaticResource PageTitle}" Text="MAC address table" />
+                <TextBlock x:Name="Sub" Style="{StaticResource PageSubtitle}" Text="Dynamic and static entries. Filter by MAC, VLAN or port." />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <ui:TextBox x:Name="FilterBox" Width="240" PlaceholderText="Filter" Icon="{ui:SymbolIcon Search24}" TextChanged="Filter_TextChanged" />
+                <ui:Button Margin="8,0,0,0" Icon="{ui:SymbolIcon ArrowSync24}" Content="Refresh" Click="Refresh_Click" />
+            </StackPanel>
+        </Grid>
+        <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Search24}" Content="ARP table" Click="Arp_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Search24}" Content="CDP neighbors" Click="Cdp_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Search24}" Content="LLDP neighbors" Click="Lldp_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Search24}" Content="DHCP snooping bindings" Click="Snoop_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Broom24}" Content="Clear dynamic" Click="Clear_Click" />
+        </WrapPanel>
+        <DataGrid x:Name="Grid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" FontSize="12.5">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="VLAN" Binding="{Binding Vlan}" Width="80" />
+                <DataGridTextColumn Header="MAC" Binding="{Binding Mac}" Width="170" FontFamily="{StaticResource MonoFont}" />
+                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="100" />
+                <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="*" FontFamily="{StaticResource MonoFont}" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</views:SwitchPage>
