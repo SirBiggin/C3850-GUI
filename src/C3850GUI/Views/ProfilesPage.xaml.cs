@@ -30,6 +30,7 @@ public partial class ProfilesPage : SwitchPage
         Editor.IsEnabled = true;
         NameBox.Text = p.Name; HostBox.Text = p.Host; PortBox.Value = p.Port; UserBox.Text = p.Username;
         AuthPw.IsChecked = p.Auth == AuthMode.Password; AuthKey.IsChecked = p.Auth == AuthMode.PrivateKey;
+        ProtoSsh.IsChecked = p.Protocol == Protocol.Ssh; ProtoTelnet.IsChecked = p.Protocol == Protocol.Telnet;
         PwBox.Password = Protector.Unprotect(p.ProtectedPassword);
         EnableBox.Password = Protector.Unprotect(p.ProtectedEnableSecret);
         KeyBox.Text = p.PrivateKeyPath; KeyPassBox.Password = Protector.Unprotect(p.ProtectedKeyPassphrase);
@@ -50,6 +51,7 @@ public partial class ProfilesPage : SwitchPage
         p.Port = (int)(PortBox.Value ?? 22);
         p.Username = UserBox.Text.Trim();
         p.Auth = AuthKey.IsChecked == true ? AuthMode.PrivateKey : AuthMode.Password;
+        p.Protocol = ProtoTelnet.IsChecked == true ? Protocol.Telnet : Protocol.Ssh;
         p.ProtectedPassword = Protector.Protect(PwBox.Password);
         p.ProtectedEnableSecret = Protector.Protect(EnableBox.Password);
         p.PrivateKeyPath = KeyBox.Text.Trim();
@@ -117,6 +119,14 @@ public partial class ProfilesPage : SwitchPage
         App.Store.Profiles.Remove(p);
         App.Store.Save();
         Editor.IsEnabled = false; _editing = null;
+    }
+
+    private void Proto_Changed(object s, RoutedEventArgs e)
+    {
+        if (PortBox == null || AuthKey == null) return;
+        // swap the default port when switching protocols, keep custom ports alone
+        if (ProtoTelnet.IsChecked == true) { if (PortBox.Value == 22) PortBox.Value = 23; AuthPw.IsChecked = true; AuthKey.IsEnabled = false; }
+        else { if (PortBox.Value == 23) PortBox.Value = 22; AuthKey.IsEnabled = true; }
     }
 
     private void Auth_Changed(object s, RoutedEventArgs e)

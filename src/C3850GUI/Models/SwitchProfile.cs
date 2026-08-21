@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace C3850GUI.Models;
 
 public enum AuthMode { Password, PrivateKey }
+public enum Protocol { Ssh, Telnet }
 
 /// <summary>A saved connection to one switch stack's management address.</summary>
 public partial class SwitchProfile : ObservableObject
@@ -14,6 +15,7 @@ public partial class SwitchProfile : ObservableObject
     [ObservableProperty] private int _port = 22;
     [ObservableProperty] private string _username = "";
     [ObservableProperty] private AuthMode _auth = AuthMode.Password;
+    [ObservableProperty] private Protocol _protocol = Protocol.Ssh;
     [ObservableProperty] private string _privateKeyPath = "";
 
     /// <summary>DPAPI-protected, base64. Never the clear password.</summary>
@@ -36,7 +38,7 @@ public partial class SwitchProfile : ObservableObject
 
     public SwitchProfile Clone() => new()
     {
-        Id = Id, Name = Name, Host = Host, Port = Port, Username = Username, Auth = Auth,
+        Id = Id, Name = Name, Host = Host, Port = Port, Username = Username, Auth = Auth, Protocol = Protocol,
         PrivateKeyPath = PrivateKeyPath, ProtectedPassword = ProtectedPassword,
         ProtectedEnableSecret = ProtectedEnableSecret, ProtectedKeyPassphrase = ProtectedKeyPassphrase,
         AccentHex = AccentHex, Notes = Notes, PortGroupSize = PortGroupSize,

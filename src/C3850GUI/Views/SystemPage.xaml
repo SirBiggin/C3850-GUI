@@ -1,0 +1,147 @@
+<views:SwitchPage x:Class="C3850GUI.Views.SystemPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:views="clr-namespace:C3850GUI.Views"
+      Title="System">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,20,28,20">
+        <StackPanel>
+            <Grid>
+                <StackPanel>
+                    <TextBlock Style="{StaticResource PageTitle}" Text="System" />
+                    <TextBlock Style="{StaticResource PageSubtitle}" Text="Management services, identity, users, time, logging, SNMP, discovery. Values are read from the running config." />
+                </StackPanel>
+                <ui:Button HorizontalAlignment="Right" VerticalAlignment="Top" Icon="{ui:SymbolIcon ArrowSync24}" Content="Refresh" Click="Refresh_Click" />
+            </Grid>
+
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <!-- Management access -->
+                    <ui:Card Margin="0,0,0,12"><StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="Management access" />
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="HTTP web server (port 80)" /><TextBlock x:Name="HttpState" Style="{StaticResource Muted}" /></StackPanel>
+                            <ui:ToggleSwitch x:Name="HttpToggle" Grid.Column="1" Click="Http_Click" />
+                        </Grid>
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="HTTPS web server (port 443)" /><TextBlock x:Name="HttpsState" Style="{StaticResource Muted}" /></StackPanel>
+                            <ui:ToggleSwitch x:Name="HttpsToggle" Grid.Column="1" Click="Https_Click" />
+                        </Grid>
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="Telnet on vty lines" /><TextBlock x:Name="TelnetState" Style="{StaticResource Muted}" /></StackPanel>
+                            <ui:ToggleSwitch x:Name="TelnetToggle" Grid.Column="1" Click="Telnet_Click" />
+                        </Grid>
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="SSH on vty lines" /><TextBlock x:Name="SshState" Style="{StaticResource Muted}" /></StackPanel>
+                            <ui:ToggleSwitch x:Name="SshToggle" Grid.Column="1" Click="Ssh_Click" />
+                        </Grid>
+                        <TextBlock x:Name="VtyInfo" Style="{StaticResource Muted}" Margin="0,4,0,8" TextWrapping="Wrap" FontFamily="{StaticResource MonoFont}" />
+                        <WrapPanel>
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Key24}" Content="SSH keys / version…" Click="SshKeys_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Timer24}" Content="Exec timeout…" Click="ExecTimeout_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon LockClosed24}" Content="vty access-class…" Click="AccessClass_Click" ToolTip="Restrict who may connect by ACL" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Info24}" Content="Who's logged in" Click="Who_Click" />
+                        </WrapPanel>
+                    </StackPanel></ui:Card>
+
+                    <!-- Identity -->
+                    <ui:Card Margin="0,0,0,12"><StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="Identity" />
+                        <TextBlock x:Name="IdentityText" Style="{StaticResource Muted}" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                        <WrapPanel>
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Hostname…" Click="Hostname_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Domain name…" Click="Domain_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Banner (MOTD)…" Click="Banner_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="DNS servers…" Click="Dns_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Default gateway (L2 mode)…" Click="Gateway_Click" />
+                        </WrapPanel>
+                    </StackPanel></ui:Card>
+
+                    <!-- Users -->
+                    <ui:Card Margin="0,0,0,12"><StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="Local users" Margin="0" />
+                            <WrapPanel HorizontalAlignment="Right">
+                                <ui:Button Margin="0,0,6,0" Appearance="Primary" Icon="{ui:SymbolIcon Add24}" Content="Add / change…" Click="AddUser_Click" />
+                                <ui:Button Margin="0,0,6,0" Icon="{ui:SymbolIcon Delete24}" Content="Remove" Click="DelUser_Click" />
+                                <ui:Button Icon="{ui:SymbolIcon Key24}" Content="Enable secret…" Click="EnableSecret_Click" />
+                            </WrapPanel>
+                        </Grid>
+                        <ListBox x:Name="Users" FontFamily="{StaticResource MonoFont}" FontSize="12.5" MaxHeight="160" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                        <TextBlock x:Name="AaaText" Style="{StaticResource Muted}" Margin="0,6,0,0" TextWrapping="Wrap" FontFamily="{StaticResource MonoFont}" />
+                    </StackPanel></ui:Card>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <!-- Time -->
+                    <ui:Card Margin="0,0,0,12"><StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="Time" />
+                        <TextBlock x:Name="ClockText" Style="{StaticResource Muted}" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                        <WrapPanel>
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="NTP servers…" Click="Ntp_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Timezone / DST…" Click="Timezone_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Set clock manually…" Click="SetClock_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Info24}" Content="NTP status" Click="NtpStatus_Click" />
+                        </WrapPanel>
+                    </StackPanel></ui:Card>
+
+                    <!-- Logging -->
+                    <ui:Card Margin="0,0,0,12"><StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="Syslog" />
+                        <TextBlock x:Name="LoggingText" Style="{StaticResource Muted}" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                        <WrapPanel>
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Syslog hosts…" Click="LogHosts_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Levels / buffer…" Click="LogLevels_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Timestamps…" Click="LogTimestamps_Click" />
+                        </WrapPanel>
+                    </StackPanel></ui:Card>
+
+                    <!-- SNMP -->
+                    <ui:Card Margin="0,0,0,12"><StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="SNMP" />
+                        <TextBlock x:Name="SnmpText" Style="{StaticResource Muted}" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                        <WrapPanel>
+                            <ui:Button Margin="0,0,6,6" Appearance="Primary" Icon="{ui:SymbolIcon Add24}" Content="Add community…" Click="SnmpAdd_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Delete24}" Content="Remove community…" Click="SnmpDel_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Location / contact…" Click="SnmpInfo_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Trap host…" Click="SnmpTrap_Click" />
+                        </WrapPanel>
+                    </StackPanel></ui:Card>
+
+                    <!-- Discovery -->
+                    <ui:Card Margin="0,0,0,12"><StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="Discovery protocols" />
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="CDP (global)" VerticalAlignment="Center" />
+                            <ui:ToggleSwitch x:Name="CdpToggle" Grid.Column="1" Click="Cdp_Click" />
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="LLDP (global)" VerticalAlignment="Center" />
+                            <ui:ToggleSwitch x:Name="LldpToggle" Grid.Column="1" Click="Lldp_Click" />
+                        </Grid>
+                    </StackPanel></ui:Card>
+
+                    <!-- Misc -->
+                    <ui:Card><StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="Other" />
+                        <WrapPanel>
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Err-disable recovery…" Click="ErrDisable_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Spanning-tree mode…" Click="Stp_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="VTP mode…" Click="Vtp_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Info24}" Content="Licenses" Click="License_Click" />
+                            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Info24}" Content="Boot / flash" Click="Boot_Click" />
+                        </WrapPanel>
+                    </StackPanel></ui:Card>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</views:SwitchPage>

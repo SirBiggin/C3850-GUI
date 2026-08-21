@@ -39,7 +39,7 @@ public sealed class SshSession : IDisposable
     private static readonly Regex HelpLine = new(@"^\s{1,4}(?<tok>\S+)(?:\s{2,}(?<help>.*))?$", RegexOptions.Compiled);
 
     public SwitchProfile Profile { get; }
-    public bool IsConnected => _client?.IsConnected == true;
+    public bool IsConnected => _telnet ? _tcp?.Connected == true : _client?.IsConnected == true;
     public string Hostname { get; private set; } = "";
     public string LastPrompt { get; private set; } = "";
     public bool Busy => _lock.CurrentCount == 0;
@@ -55,6 +55,7 @@ public sealed class SshSession : IDisposable
     public async Task ConnectAsync(CancellationToken ct = default)
     {
         var p = Profile;
+        if (p.Protocol == Protocol.Telnet) { await ConnectTelnetAsync(ct); return; }
         ConnectionInfo info;
         if (p.Auth == AuthMode.PrivateKey)
         {
@@ -102,6 +103,74 @@ public sealed class SshSession : IDisposable
         finally { EndCapture(); _lock.Release(); BusyChanged?.Invoke(false); }
     }
 
+    // ------------------------------------------------------------------ telnet transport
+
+    private System.Net.Sockets.TcpClient? _tcp;
+    private System.Net.Sockets.NetworkStream? _net;
+    private bool _telnet;
+
+    private async Task ConnectTelnetAsync(CancellationToken ct)
+    {
+        _telnet = true;
+        _tcp = new System.Net.Sockets.TcpClient();
+        using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct))
+        {
+            timeout.CancelAfter(TimeSpan.FromSeconds(15));
+            await _tcp.ConnectAsync(Profile.Host, Profile.Port == 22 ? 23 : Profile.Port, timeout.Token);
+        }
+        _net = _tcp.GetStream();
+        _reader = new Thread(ReadLoop) { IsBackground = true, Name = "telnet-reader" };
+        _reader.Start();
+
+        await _lock.WaitAsync(ct);
+        try
+        {
+            BusyChanged?.Invoke(true);
+            BeginCapture();
+            var pw = Protector.Unprotect(Profile.ProtectedPassword);
+            // IOS asks "Username:" (local/aaa login) or just "Password:" (line password); answer whichever shows up, up to 3 rounds.
+            for (int i = 0; i < 3; i++)
+            {
+                var s = await WaitForAsync(x => { var t = x.TrimEnd(); return t.EndsWith("Username:") || t.EndsWith("Password:") || t.EndsWith("login:") || PromptTail.IsMatch(x); }, TimeSpan.FromSeconds(15), ct);
+                var tail = s.TrimEnd();
+                if (PromptTail.IsMatch(s)) break;
+                BeginCapture();
+                if (tail.EndsWith("Username:") || tail.EndsWith("login:")) Write(Profile.Username + "\r\n");
+                else Write(pw + "\r\n");
+            }
+            var final = await WaitForAsync(x => PromptTail.IsMatch(x) || x.Contains("% Login invalid") || x.Contains("% Bad passwords") || x.Contains("Authentication failed"), TimeSpan.FromSeconds(15), ct);
+            if (!PromptTail.IsMatch(final)) throw new InvalidOperationException("Telnet login rejected (check username / password).");
+            LastPrompt = PromptTail.Match(final).Groups["prompt"].Value.Trim();
+            if (LastPrompt.EndsWith('>')) await EnableAsync(ct);
+            await SendAndWaitAsync("terminal length 0", ct);
+            await SendAndWaitAsync("terminal width 0", ct);
+            Hostname = LastPrompt.TrimEnd('#', '>');
+        }
+        finally { EndCapture(); _lock.Release(); BusyChanged?.Invoke(false); }
+    }
+
+    /// <summary>Strip Telnet IAC negotiation from a chunk, replying "won't/don't" to everything (plain NVT, server echoes).</summary>
+    private int FilterTelnet(byte[] buf, int n)
+    {
+        int w = 0;
+        for (int i = 0; i < n; i++)
+        {
+            if (buf[i] != 0xFF) { buf[w++] = buf[i]; continue; }
+            if (i + 1 >= n) break;
+            var cmd = buf[i + 1];
+            if (cmd == 0xFF) { buf[w++] = 0xFF; i++; continue; }           // escaped 0xFF
+            if (cmd is 0xFB or 0xFC or 0xFD or 0xFE && i + 2 < n)             // WILL/WONT/DO/DONT <opt>
+            {
+                var opt = buf[i + 2];
+                byte reply = cmd == 0xFD ? (byte)0xFC : cmd == 0xFB ? (opt is 1 or 3 ? (byte)0xFD : (byte)0xFE) : (byte)0; // DO→WONT; WILL echo/SGA→DO, else DONT
+                if (reply != 0) try { _net?.Write(new[] { (byte)0xFF, reply, opt }, 0, 3); } catch { }
+                i += 2; continue;
+            }
+            i++; // other 2-byte commands
+        }
+        return w;
+    }
+
     private async Task EnableAsync(CancellationToken ct)
     {
         var secret = Protector.Unprotect(Profile.ProtectedEnableSecret);
@@ -126,10 +195,12 @@ public sealed class SshSession : IDisposable
         var buf = new byte[16384];
         try
         {
-            while (!_cts.IsCancellationRequested && _shell != null)
+            while (!_cts.IsCancellationRequested && (_shell != null || _net != null))
             {
-                int n = _shell.Read(buf, 0, buf.Length);
-                if (n <= 0) { if (_client?.IsConnected != true) break; Thread.Sleep(10); continue; }
+                int n = _telnet ? _net!.Read(buf, 0, buf.Length) : _shell!.Read(buf, 0, buf.Length);
+                if (n <= 0) { if (!IsConnected || _telnet) break; Thread.Sleep(10); continue; }
+                if (_telnet) n = FilterTelnet(buf, n);
+                if (n == 0) continue;
                 var text = Encoding.UTF8.GetString(buf, 0, n);
                 if (_capturing) lock (_captureLock) _capture.Append(text);
                 DataReceived?.Invoke(text);
@@ -142,8 +213,9 @@ public sealed class SshSession : IDisposable
     /// <summary>Raw write from the terminal view. Does not take the command lock.</summary>
     public void Write(string s)
     {
-        if (_shell == null) return;
         var b = Encoding.UTF8.GetBytes(s);
+        if (_telnet) { if (_net == null) return; _net.Write(b, 0, b.Length); _net.Flush(); return; }
+        if (_shell == null) return;
         _shell.Write(b, 0, b.Length);
         _shell.Flush();
     }
@@ -355,6 +427,8 @@ public sealed class SshSession : IDisposable
     {
         try { _cts.Cancel(); } catch { }
         try { _shell?.Dispose(); } catch { }
+        try { _net?.Dispose(); _tcp?.Dispose(); } catch { }
+        _net = null; _tcp = null;
         try { _client?.Disconnect(); _client?.Dispose(); } catch { }
         _shell = null; _client = null;
     }
