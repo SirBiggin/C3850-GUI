@@ -20,7 +20,11 @@ public partial class SystemPage : SwitchPage
     protected override async Task RefreshAsync()
     {
         var s = Session!;
-        _cfg = (await s.RunAsync("show running-config", default, TimeSpan.FromSeconds(90))).Output.Replace("\r", "");
+        // Only fetch the lines this page uses — filtered on the switch, so serial links don't carry the whole config.
+        const string globals = "^hostname |^ip domain|^ip name-server|^ip default-gateway|^ip http|^ip ssh|^banner motd|^username |^aaa |^enable secret|^clock |^ntp |^logging |^snmp-server |^cdp run|^no cdp run|^lldp run|^errdisable |^spanning-tree |^vtp |^crypto pki|^ip routing|^no ip routing";
+        var g = (await s.RunAsync($"show running-config | include {globals}", default, TimeSpan.FromSeconds(60))).Output;
+        var vty = (await s.RunAsync("show running-config | section ^line vty", default, TimeSpan.FromSeconds(60))).Output;
+        _cfg = (g + "\n" + vty).Replace("\r", "");
 
         // --- management
         _http = !Regex.IsMatch(_cfg, @"^no ip http server", RegexOptions.Multiline) && Regex.IsMatch(_cfg, @"^ip http server", RegexOptions.Multiline);
