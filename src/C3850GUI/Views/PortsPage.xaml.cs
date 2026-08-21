@@ -214,28 +214,45 @@ public partial class PortsPage : SwitchPage
 
     private string SelectionSpec() => string.Join(",", Selected.Select(p => p.Name));
 
+    private async Task<List<VlanInfo>?> LoadVlansAsync()
+    {
+        var r = await RunAsync("show vlan brief"); if (r == null) return null;
+        var v = IosParser.VlanBrief(r.Output);
+        if (v.Count == 0) { Toast("Couldn't read the VLAN list from the switch.", ControlAppearance.Caution); return null; }
+        return v;
+    }
+
+    /// <summary>Read current allowed/native from a single port's running config so the dialog opens pre-filled.</summary>
+    private async Task<(string allowed, int native)> CurrentTrunkAsync(string iface)
+    {
+        var allowed = "all"; var native = 1;
+        try
+        {
+            var r = await Session!.RunAsync($"show running-config interface {iface}");
+            var m = Regex.Match(r.Output, @"switchport trunk allowed vlan ([\d,\-]+)");
+            if (m.Success) allowed = m.Groups[1].Value;
+            var n = Regex.Match(r.Output, @"switchport trunk native vlan (\d+)");
+            if (n.Success) native = int.Parse(n.Groups[1].Value);
+        }
+        catch { }
+        return (allowed, native);
+    }
+
     private async void Trunk_Click(object s, RoutedEventArgs e)
     {
         if (!RequireConnection()) return;
-        var f = Dialogs.Form(this, "Trunk / VLANs",
-            ("Interfaces (IOS range syntax)", SelectionSpec(), "e.g. te2/0/6-7  or  gi1/0/1-4,gi1/0/10"),
-            ("Allowed VLANs", "all", "e.g. 1,10,50,60  or  all"),
-            ("Native VLAN", "1", "e.g. 10"),
-            ("Description (optional)", "", ""));
-        if (f == null) return;
-        var spec = f["Interfaces (IOS range syntax)"].Trim();
-        if (spec.Length == 0) { Toast("Select ports or type an interface range.", ControlAppearance.Caution); return; }
-        var allowed = f["Allowed VLANs"].Trim().Replace(" ", ""); if (allowed.Length == 0) allowed = "all";
-        if (!int.TryParse(f["Native VLAN"].Trim(), out var nat) || nat < 1 || nat > 4094) { Toast("Native VLAN must be 1-4094.", ControlAppearance.Caution); return; }
-        if (allowed != "all" && !VlanListContains(allowed, nat))
-            Toast($"Note: native VLAN {nat} isn't in the allowed list, so untagged traffic will be dropped. Usually you want it included.", ControlAppearance.Caution, 8);
-        var lines = new List<string> { InterfaceCmd(spec) };
-        if (f["Description (optional)"].Trim().Length > 0) lines.Add($"description {f["Description (optional)"].Trim()}");
-        lines.AddRange(new[] { "switchport mode trunk", $"switchport trunk native vlan {nat}", $"switchport trunk allowed vlan {allowed}", "exit" });
-        if (await ConfigureAsync($"Trunk {spec}", lines.ToArray())) await SafeRefreshAsync();
+        var vlans = await LoadVlansAsync(); if (vlans == null) return;
+        var sel = Selected;
+        var (curAllowed, curNative) = sel.Count == 1 ? await CurrentTrunkAsync(sel[0].Name) : ("all", 1);
+        var d = TrunkDialog.Show(this, "Trunk / VLANs", vlans, SelectionSpec(), false, curAllowed, curNative);
+        if (d == null) return;
+        var lines = new List<string> { InterfaceCmd(d.Interfaces) };
+        if (d.Description.Length > 0) lines.Add($"description {d.Description}");
+        lines.AddRange(new[] { "switchport mode trunk", $"switchport trunk native vlan {d.Native}", $"switchport trunk allowed vlan {d.Allowed}", "exit" });
+        if (await ConfigureAsync($"Trunk {d.Interfaces}", lines.ToArray())) await SafeRefreshAsync();
     }
 
-    private static bool VlanListContains(string list, int vlan)
+    public static bool VlanListContains(string list, int vlan)
     {
         foreach (var part in list.Split(',', StringSplitOptions.RemoveEmptyEntries))
         {
@@ -249,38 +266,26 @@ public partial class PortsPage : SwitchPage
     private async void PortChannel_Click(object s, RoutedEventArgs e)
     {
         if (!RequireConnection()) return;
-        var f = Dialogs.Form(this, "Port-channel (EtherChannel trunk)",
-            ("Member interfaces (IOS range syntax)", SelectionSpec(), "e.g. te1/1/1,te2/1/1"),
-            ("Channel number", "1", "1-128"),
-            ("Mode", "active", "active | passive (LACP)   desirable | auto (PAgP)   on (static)"),
-            ("Allowed VLANs", "all", "e.g. 1,10,50,60 or all"),
-            ("Native VLAN", "1", ""),
-            ("Description (optional)", "", ""));
-        if (f == null) return;
-        var spec = f["Member interfaces (IOS range syntax)"].Trim();
-        if (spec.Length == 0 || !int.TryParse(f["Channel number"], out var ch) || ch < 1 || ch > 128) { Toast("Need member interfaces and a channel number 1-128.", ControlAppearance.Caution); return; }
-        var mode = f["Mode"].Trim().ToLowerInvariant();
-        if (mode is not ("active" or "passive" or "desirable" or "auto" or "on")) { Toast("Mode must be active, passive, desirable, auto or on.", ControlAppearance.Caution); return; }
-        var allowed = f["Allowed VLANs"].Trim().Replace(" ", ""); if (allowed.Length == 0) allowed = "all";
-        var native = f["Native VLAN"].Trim(); if (native.Length == 0) native = "1";
-        var desc = f["Description (optional)"].Trim();
+        var vlans = await LoadVlansAsync(); if (vlans == null) return;
+        var d = TrunkDialog.Show(this, "Port-channel (EtherChannel trunk)", vlans, SelectionSpec(), true);
+        if (d == null) return;
 
         // Members must match the Po's switchport config or they won't bundle, so both get the same lines.
-        string[] trunk = { "switchport mode trunk", $"switchport trunk native vlan {native}", $"switchport trunk allowed vlan {allowed}" };
-        var lines = new List<string> { InterfaceCmd(spec) };
+        string[] trunk = { "switchport mode trunk", $"switchport trunk native vlan {d.Native}", $"switchport trunk allowed vlan {d.Allowed}" };
+        var lines = new List<string> { InterfaceCmd(d.Interfaces) };
         lines.AddRange(trunk);
-        lines.Add($"channel-group {ch} mode {mode}");
+        lines.Add($"channel-group {d.Channel} mode {d.Mode}");
         lines.Add("no shutdown");
         lines.Add("exit");
-        lines.Add($"interface Port-channel{ch}");
-        if (desc.Length > 0) lines.Add($"description {desc}");
+        lines.Add($"interface Port-channel{d.Channel}");
+        if (d.Description.Length > 0) lines.Add($"description {d.Description}");
         lines.AddRange(trunk);
         lines.Add("no shutdown");
         lines.Add("exit");
-        if (await ConfigureAsync($"Port-channel{ch} ({mode})", lines.ToArray()))
+        if (await ConfigureAsync($"Port-channel{d.Channel} ({d.Mode})", lines.ToArray()))
         {
-            var r = await RunAsync($"show etherchannel {ch} summary");
-            if (r != null) Dialogs.ShowText(this, $"Port-channel{ch}", r.Output);
+            var r = await RunAsync($"show etherchannel {d.Channel} summary");
+            if (r != null) Dialogs.ShowText(this, $"Port-channel{d.Channel}", r.Output);
             await SafeRefreshAsync();
         }
     }

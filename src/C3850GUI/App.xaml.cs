@@ -20,6 +20,9 @@ public partial class App : Application
         var w = new MainWindow();
         MainWindow = w;
         w.Show();
+#if DEBUG
+        Views.DialogPreview.Run();
+#endif
     }
 
     private void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
