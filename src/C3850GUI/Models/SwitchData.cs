@@ -13,6 +13,23 @@ public partial class PortInfo : ObservableObject
     [ObservableProperty] private string _type = "";
     [ObservableProperty] private bool _isSelected;
 
+    // from "show interfaces switchport"
+    [ObservableProperty] private string _mode = "";          // access | trunk | dynamic | routed | ""
+    [ObservableProperty] private string _operMode = "";
+    [ObservableProperty] private string _accessVlan = "";
+    [ObservableProperty] private string _nativeVlan = "";
+    [ObservableProperty] private string _allowedVlans = "";
+    [ObservableProperty] private string _voiceVlan = "";
+
+    public bool IsTrunk => Mode == "trunk";
+    public string ModeDetail => Mode switch
+    {
+        "trunk" => $"native {NativeVlan}  allowed {AllowedVlans}",
+        "access" => VoiceVlan.Length > 0 && VoiceVlan != "none" ? $"vlan {AccessVlan}  voice {VoiceVlan}" : $"vlan {AccessVlan}",
+        "dynamic" => $"oper {OperMode}",
+        _ => ""
+    };
+
     public bool IsUp => Status.Equals("connected", StringComparison.OrdinalIgnoreCase);
     public bool IsDisabled => Status.Contains("disabled", StringComparison.OrdinalIgnoreCase);
     public bool IsErrDisabled => Status.Contains("err-disabled", StringComparison.OrdinalIgnoreCase);

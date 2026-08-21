@@ -99,7 +99,7 @@ public partial class PortsPage : SwitchPage
             {
                 Width = isModule ? 26 : 22, Height = 15, Margin = new Thickness(1.5), CornerRadius = new CornerRadius(3), Cursor = Cursors.Hand,
                 Background = (System.Windows.Media.Brush)new Converters.PortStatusBrushConverter().Convert(p.Status, typeof(System.Windows.Media.Brush), null!, null!),
-                Tag = p, ToolTip = $"{p.Name}\n{p.Description}\n{p.Status}  vlan {p.Vlan}  {p.Speed}  {p.Type}",
+                Tag = p, ToolTip = $"{p.Name}\n{p.Description}\n{p.Status}  {p.Speed}  {p.Type}\n{p.Mode} {p.ModeDetail}".Trim(),
                 BorderBrush = System.Windows.Media.Brushes.White, BorderThickness = new Thickness(p.IsSelected ? 2 : 0)
             };
             b.Child = new System.Windows.Controls.TextBlock { Text = Regex.Match(p.Name, @"(\d+)$").Groups[1].Value, FontSize = 8.5, Foreground = System.Windows.Media.Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.85 };
@@ -134,7 +134,7 @@ public partial class PortsPage : SwitchPage
         var f = FilterBox.Text.Trim();
         _view.Clear();
         foreach (var p in _all)
-            if (f.Length == 0 || $"{p.Name} {p.Description} {p.Status} {p.Vlan} {p.Type}".Contains(f, StringComparison.OrdinalIgnoreCase))
+            if (f.Length == 0 || $"{p.Name} {p.Description} {p.Status} {p.Vlan} {p.Type} {p.Mode} {p.ModeDetail}".Contains(f, StringComparison.OrdinalIgnoreCase))
                 _view.Add(p);
     }
 
@@ -222,19 +222,11 @@ public partial class PortsPage : SwitchPage
         return v;
     }
 
-    /// <summary>Read current allowed/native from a single port's running config so the dialog opens pre-filled.</summary>
-    private async Task<(string allowed, int native)> CurrentTrunkAsync(string iface)
+    /// <summary>Current allowed/native for a port, from the switchport data loaded with the table.</summary>
+    private static (string allowed, int native) CurrentTrunk(PortInfo p)
     {
-        var allowed = "all"; var native = 1;
-        try
-        {
-            var r = await Session!.RunAsync($"show running-config interface {iface}");
-            var m = Regex.Match(r.Output, @"switchport trunk allowed vlan ([\d,\-]+)");
-            if (m.Success) allowed = m.Groups[1].Value;
-            var n = Regex.Match(r.Output, @"switchport trunk native vlan (\d+)");
-            if (n.Success) native = int.Parse(n.Groups[1].Value);
-        }
-        catch { }
+        var allowed = string.IsNullOrEmpty(p.AllowedVlans) ? "all" : p.AllowedVlans;
+        var native = int.TryParse(p.NativeVlan, out var n) ? n : 1;
         return (allowed, native);
     }
 
@@ -243,7 +235,7 @@ public partial class PortsPage : SwitchPage
         if (!RequireConnection()) return;
         var vlans = await LoadVlansAsync(); if (vlans == null) return;
         var sel = Selected;
-        var (curAllowed, curNative) = sel.Count == 1 ? await CurrentTrunkAsync(sel[0].Name) : ("all", 1);
+        var (curAllowed, curNative) = sel.Count == 1 ? CurrentTrunk(sel[0]) : ("all", 1);
         var d = TrunkDialog.Show(this, "Trunk / VLANs", vlans, SelectionSpec(), false, curAllowed, curNative);
         if (d == null) return;
         var lines = new List<string> { InterfaceCmd(d.Interfaces) };

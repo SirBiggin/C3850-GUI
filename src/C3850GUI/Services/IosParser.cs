@@ -43,6 +43,49 @@ public static class IosParser
         return list;
     }
 
+    public class SwitchportInfo
+    {
+        public string Name = ""; public string AdminMode = ""; public string OperMode = "";
+        public string AccessVlan = ""; public string NativeVlan = ""; public string Allowed = ""; public string Voice = "";
+        public bool Enabled = true;
+    }
+
+    /// <summary>"show interfaces switchport" → per-port admin/oper mode and VLAN settings, keyed by short name (Gi1/0/1).</summary>
+    public static Dictionary<string, SwitchportInfo> InterfacesSwitchport(string output)
+    {
+        var d = new Dictionary<string, SwitchportInfo>(StringComparer.OrdinalIgnoreCase);
+        SwitchportInfo? cur = null;
+        foreach (var raw in Lines(output))
+        {
+            var l = raw.Trim();
+            if (l.StartsWith("Name:")) { cur = new SwitchportInfo { Name = l[5..].Trim() }; d[cur.Name] = cur; continue; }
+            if (cur == null) continue;
+            string V(string key) => l.StartsWith(key) ? l[key.Length..].Trim() : null!;
+            if (V("Switchport:") is { } sw) cur.Enabled = sw.StartsWith("Enabled", StringComparison.OrdinalIgnoreCase);
+            else if (V("Administrative Mode:") is { } am) cur.AdminMode = am;
+            else if (V("Operational Mode:") is { } om) cur.OperMode = om;
+            else if (V("Access Mode VLAN:") is { } av) cur.AccessVlan = FirstToken(av);
+            else if (V("Trunking Native Mode VLAN:") is { } nv) cur.NativeVlan = FirstToken(nv);
+            else if (V("Voice VLAN:") is { } vv) cur.Voice = FirstToken(vv);
+            else if (V("Trunking VLANs Enabled:") is { } te) cur.Allowed = te.Equals("ALL", StringComparison.OrdinalIgnoreCase) ? "all" : te.Replace(" ", "");
+            else if (cur.Allowed.Length > 0 && cur.Allowed != "all" && Regex.IsMatch(l, @"^[\d,\-]+$")) cur.Allowed += l; // wrapped allowed list
+        }
+        return d;
+    }
+
+    private static string FirstToken(string s) => s.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+
+    /// <summary>Collapse IOS's admin-mode wording to access | trunk | dynamic | routed.</summary>
+    public static string SimplifyMode(SwitchportInfo sp)
+    {
+        if (!sp.Enabled) return "routed";
+        var a = sp.AdminMode.ToLowerInvariant();
+        if (a.Contains("trunk")) return "trunk";
+        if (a.Contains("access")) return "access";
+        if (a.Contains("dynamic")) return sp.OperMode.Contains("trunk", StringComparison.OrdinalIgnoreCase) ? "trunk" : "dynamic";
+        return a.Length == 0 ? "" : a;
+    }
+
     // VLAN Name                             Status    Ports
     public static List<VlanInfo> VlanBrief(string output)
     {

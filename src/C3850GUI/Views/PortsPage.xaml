@@ -62,7 +62,28 @@
                 <DataGridTextColumn Header="Port" Binding="{Binding Name}" Width="110" FontFamily="{StaticResource MonoFont}" />
                 <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" />
                 <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="110" />
-                <DataGridTextColumn Header="VLAN" Binding="{Binding Vlan}" Width="70" />
+                <DataGridTemplateColumn Header="Mode" Width="90" SortMemberPath="Mode">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="9" Padding="8,1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#33555B66" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Mode}" Value="trunk"><Setter Property="Background" Value="#552E8BFF" /></DataTrigger>
+                                            <DataTrigger Binding="{Binding Mode}" Value="access"><Setter Property="Background" Value="#443FB950" /></DataTrigger>
+                                            <DataTrigger Binding="{Binding Mode}" Value="dynamic"><Setter Property="Background" Value="#55E0A030" /></DataTrigger>
+                                            <DataTrigger Binding="{Binding Mode}" Value=""><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="{Binding Mode}" FontSize="11.5" />
+                            </Border>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="VLANs" Binding="{Binding ModeDetail}" Width="200" FontFamily="{StaticResource MonoFont}" FontSize="11.5" />
+                <DataGridTextColumn Header="Status VLAN" Binding="{Binding Vlan}" Width="80" />
                 <DataGridTextColumn Header="Duplex" Binding="{Binding Duplex}" Width="80" />
                 <DataGridTextColumn Header="Speed" Binding="{Binding Speed}" Width="80" />
                 <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="160" />
