@@ -68,13 +68,21 @@ public sealed class SshSession : IDisposable
         else
         {
             var pw = Protector.Unprotect(p.ProtectedPassword);
+            if (string.IsNullOrEmpty(p.Username)) throw new InvalidOperationException("SSH needs a username (unlike a console/telnet line password). Set one on the Connections page.");
+            if (string.IsNullOrEmpty(pw)) throw new InvalidOperationException("No password saved for this profile. Enter it on the Connections page.");
             // Some IOS builds only offer keyboard-interactive; support both.
             var kbd = new KeyboardInteractiveAuthenticationMethod(p.Username);
             kbd.AuthenticationPrompt += (_, e) => { foreach (var pr in e.Prompts) pr.Response = pw; };
             info = new ConnectionInfo(p.Host, p.Port, p.Username, new PasswordAuthenticationMethod(p.Username, pw), kbd);
         }
         info.Timeout = TimeSpan.FromSeconds(15);
-        await ConnectCoreAsync(info, ct);
+        try { await ConnectCoreAsync(info, ct); }
+        catch (Renci.SshNet.Common.SshAuthenticationException)
+        {
+            throw new InvalidOperationException(
+                $"SSH login was rejected for user '{p.Username}'. SSH authenticates differently from the console: it needs a real username + password (or key), " +
+                "not just a line password. Check that the username/password are right, and that the switch has a local user (\"username X privilege 15 secret …\") with the vty lines set to \"login local\". The System page can set both.");
+        }
     }
 
     private async Task ConnectCoreAsync(ConnectionInfo info, CancellationToken ct)
