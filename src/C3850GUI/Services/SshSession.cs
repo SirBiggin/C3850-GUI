@@ -13,6 +13,7 @@ public class CommandResult
 {
     public string Command { get; init; } = "";
     public string Output { get; init; } = "";
+    public TimeSpan Duration { get; init; }
     public bool Error => Output.Contains("\n% ") || Output.StartsWith("% ");
     public string ErrorText => string.Join(" | ", Output.Split('\n').Where(l => l.TrimStart().StartsWith('%')).Select(l => l.Trim()));
 }
@@ -264,6 +265,8 @@ public sealed class SshSession : IDisposable
         return string.Join('\n', lines);
     }
 
+    public bool IsSerial => _serial != null;
+
     /// <summary>Serial links are slow (9600 baud ≈ 1 KB/s); stretch every timeout there.</summary>
     private TimeSpan Scale(TimeSpan t) => _serial != null ? TimeSpan.FromTicks(t.Ticks * 4) : t;
 
@@ -317,8 +320,9 @@ public sealed class SshSession : IDisposable
         try
         {
             BusyChanged?.Invoke(true);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             var outp = await SendAndWaitAsync(command, ct, timeout);
-            var r = new CommandResult { Command = command, Output = outp };
+            var r = new CommandResult { Command = command, Output = outp, Duration = sw.Elapsed };
             CommandExecuted?.Invoke(r);
             return r;
         }

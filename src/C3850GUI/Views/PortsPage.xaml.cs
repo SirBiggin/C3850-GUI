@@ -26,7 +26,14 @@ public partial class PortsPage : SwitchPage
     {
         var r = await Session!.RunAsync("show interfaces status");
         _all = IosParser.InterfacesStatus(r.Output);
-        try
+        if (Session!.IsSerial)
+        {
+            // 'show interfaces switchport' is ~40 KB on a 48-port stack — far too slow at console speeds; derive mode from the status table instead.
+            foreach (var p in _all)
+                p.Mode = p.Vlan.Equals("trunk", StringComparison.OrdinalIgnoreCase) ? "trunk" : p.Vlan.Equals("routed", StringComparison.OrdinalIgnoreCase) ? "routed" : int.TryParse(p.Vlan, out _) ? "access" : "";
+            foreach (var p in _all.Where(p => p.Mode == "access")) p.AccessVlan = p.Vlan;
+        }
+        else try
         {
             var sp = IosParser.InterfacesSwitchport((await Session!.RunAsync("show interfaces switchport", default, TimeSpan.FromSeconds(60))).Output);
             foreach (var p in _all)

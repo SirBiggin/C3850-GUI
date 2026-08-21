@@ -30,6 +30,7 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Time" Binding="{Binding TimeText}" Width="80" />
+                <DataGridTextColumn Header="Took" Binding="{Binding DurationText}" Width="70" />
                 <DataGridTextColumn Header="Switch" Binding="{Binding Switch}" Width="140" />
                 <DataGridTextColumn Header="Command" Binding="{Binding Command}" Width="360" FontFamily="{StaticResource MonoFont}" />
                 <DataGridTextColumn Header="Output" Binding="{Binding Summary}" Width="*" />

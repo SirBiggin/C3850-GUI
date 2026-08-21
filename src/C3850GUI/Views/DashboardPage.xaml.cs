@@ -38,6 +38,7 @@ public partial class DashboardPage : SwitchPage
         var (mods, _) = IosParser.PowerInline((await s.RunAsync("show power inline")).Output);
         StatPoe.Text = mods.Count > 0 ? $"{mods.Sum(m => m.Used):0} / {mods.Sum(m => m.Available):0}" : "n/a";
 
+        if (s.IsSerial) { RecentLog.Text = "(recent log skipped over serial — the full buffer is too slow at console speed; use the Logs page if you need it)"; return; }
         // IOS-XE on the 3850 has no "| tail"; pull the buffer and trim locally.
         var log = (await s.RunAsync("show logging", default, TimeSpan.FromSeconds(60))).Output;
         var lines = log.Split('\n');

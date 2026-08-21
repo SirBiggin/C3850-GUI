@@ -12,6 +12,8 @@ public class ActivityEntry
     public string Command { get; init; } = "";
     public string Output { get; init; } = "";
     public bool Error { get; init; }
+    public TimeSpan Duration { get; init; }
+    public string DurationText => Duration.TotalSeconds >= 1 ? $"{Duration.TotalSeconds:0.0}s" : $"{Duration.TotalMilliseconds:0}ms";
     public string TimeText => Time.ToString("HH:mm:ss");
     public string Summary => Output.Length > 140 ? Output[..140].Replace('\n', ' ') + "…" : Output.Replace('\n', ' ');
 }
@@ -49,7 +51,7 @@ public partial class SessionManager : ObservableObject
         s.BusyChanged += b => Ui(() => { if (s == Active) Busy = b; });
         s.CommandExecuted += r => Ui(() =>
         {
-            Activity.Insert(0, new ActivityEntry { Switch = profile.Name, Command = r.Command, Output = r.Output, Error = r.Error });
+            Activity.Insert(0, new ActivityEntry { Switch = profile.Name, Command = r.Command, Output = r.Output, Error = r.Error, Duration = r.Duration });
             while (Activity.Count > 500) Activity.RemoveAt(Activity.Count - 1);
         });
         s.Disconnected += msg => Ui(() =>
