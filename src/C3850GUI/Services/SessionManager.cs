@@ -59,7 +59,7 @@ public partial class SessionManager : ObservableObject
             if (Active == s) { Active = Open.FirstOrDefault(); StatusText = $"Disconnected: {msg}"; }
             SessionLost?.Invoke(s, msg);
         });
-        StatusText = $"Connecting to {profile.Host}…";
+        StatusText = $"Connecting to {profile.Endpoint}…";
         try
         {
             await s.ConnectAsync(ct);
@@ -91,7 +91,7 @@ public partial class SessionManager : ObservableObject
 
     partial void OnActiveChanged(SshSession? value)
     {
-        StatusText = value == null ? "Not connected" : $"{value.Hostname}  ·  {value.Profile.Host}";
+        StatusText = value == null ? "Not connected" : $"{value.Hostname}  ·  {value.Profile.Endpoint}";
         Busy = value?.Busy ?? false;
         OnPropertyChanged(nameof(IsConnected));
         ActiveChanged?.Invoke();

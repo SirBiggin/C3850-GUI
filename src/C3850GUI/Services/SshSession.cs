@@ -39,7 +39,7 @@ public sealed class SshSession : IDisposable
     private static readonly Regex HelpLine = new(@"^\s{1,4}(?<tok>\S+)(?:\s{2,}(?<help>.*))?$", RegexOptions.Compiled);
 
     public SwitchProfile Profile { get; }
-    public bool IsConnected => _telnet ? _tcp?.Connected == true : _client?.IsConnected == true;
+    public bool IsConnected => _serial != null ? _serial.IsOpen : _telnet ? _tcp?.Connected == true : _client?.IsConnected == true;
     public string Hostname { get; private set; } = "";
     public string LastPrompt { get; private set; } = "";
     public bool Busy => _lock.CurrentCount == 0;
@@ -56,6 +56,7 @@ public sealed class SshSession : IDisposable
     {
         var p = Profile;
         if (p.Protocol == Protocol.Telnet) { await ConnectTelnetAsync(ct); return; }
+        if (p.Protocol == Protocol.Serial) { await ConnectSerialAsync(ct); return; }
         ConnectionInfo info;
         if (p.Auth == AuthMode.PrivateKey)
         {
@@ -106,27 +107,52 @@ public sealed class SshSession : IDisposable
     // ------------------------------------------------------------------ telnet transport
 
     private System.Net.Sockets.TcpClient? _tcp;
-    private System.Net.Sockets.NetworkStream? _net;
-    private bool _telnet;
+    private Stream? _raw;          // telnet or serial stream
+    private bool _telnet, _rawMode;
 
     private async Task ConnectTelnetAsync(CancellationToken ct)
     {
-        _telnet = true;
+        _telnet = true; _rawMode = true;
         _tcp = new System.Net.Sockets.TcpClient();
         using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct))
         {
             timeout.CancelAfter(TimeSpan.FromSeconds(15));
             await _tcp.ConnectAsync(Profile.Host, Profile.Port == 22 ? 23 : Profile.Port, timeout.Token);
         }
-        _net = _tcp.GetStream();
+        _raw = _tcp.GetStream();
         _reader = new Thread(ReadLoop) { IsBackground = true, Name = "telnet-reader" };
         _reader.Start();
+        await LoginOnRawAsync(ct, wake: false);
+    }
 
+    // ------------------------------------------------------------------ serial (console) transport
+
+    private System.IO.Ports.SerialPort? _serial;
+
+    private async Task ConnectSerialAsync(CancellationToken ct)
+    {
+        _rawMode = true;
+        _serial = new System.IO.Ports.SerialPort(Profile.ComPort, Profile.BaudRate, System.IO.Ports.Parity.None, 8, System.IO.Ports.StopBits.One)
+        { Handshake = System.IO.Ports.Handshake.None, DtrEnable = true, RtsEnable = true, ReadTimeout = 500, WriteTimeout = 2000, Encoding = Encoding.UTF8 };
+        _serial.Open();
+        _raw = _serial.BaseStream;
+        _reader = new Thread(ReadLoop) { IsBackground = true, Name = "serial-reader" };
+        _reader.Start();
+        await LoginOnRawAsync(ct, wake: true);
+    }
+
+    /// <summary>
+    /// Shared login for telnet/serial: answer Username:/Password: prompts, land at a prompt, enable, set terminal length 0.
+    /// A console may be sitting inside config mode or at "--More--" from a previous user; we send Ctrl-Z/Enter first when <paramref name="wake"/>.
+    /// </summary>
+    private async Task LoginOnRawAsync(CancellationToken ct, bool wake)
+    {
         await _lock.WaitAsync(ct);
         try
         {
             BusyChanged?.Invoke(true);
             BeginCapture();
+            if (wake) { Write("\x1a\r\n"); await Task.Delay(400, ct); BeginCapture(); Write("\r\n"); }
             var pw = Protector.Unprotect(Profile.ProtectedPassword);
             // IOS asks "Username:" (local/aaa login) or just "Password:" (line password); answer whichever shows up, up to 3 rounds.
             for (int i = 0; i < 3; i++)
@@ -163,7 +189,7 @@ public sealed class SshSession : IDisposable
             {
                 var opt = buf[i + 2];
                 byte reply = cmd == 0xFD ? (byte)0xFC : cmd == 0xFB ? (opt is 1 or 3 ? (byte)0xFD : (byte)0xFE) : (byte)0; // DO→WONT; WILL echo/SGA→DO, else DONT
-                if (reply != 0) try { _net?.Write(new[] { (byte)0xFF, reply, opt }, 0, 3); } catch { }
+                if (reply != 0) try { _raw?.Write(new[] { (byte)0xFF, reply, opt }, 0, 3); } catch { }
                 i += 2; continue;
             }
             i++; // other 2-byte commands
@@ -195,9 +221,11 @@ public sealed class SshSession : IDisposable
         var buf = new byte[16384];
         try
         {
-            while (!_cts.IsCancellationRequested && (_shell != null || _net != null))
+            while (!_cts.IsCancellationRequested && (_shell != null || _raw != null))
             {
-                int n = _telnet ? _net!.Read(buf, 0, buf.Length) : _shell!.Read(buf, 0, buf.Length);
+                int n;
+                try { n = _rawMode ? _raw!.Read(buf, 0, buf.Length) : _shell!.Read(buf, 0, buf.Length); }
+                catch (TimeoutException) { continue; }   // serial ReadTimeout: just poll again
                 if (n <= 0) { if (!IsConnected || _telnet) break; Thread.Sleep(10); continue; }
                 if (_telnet) n = FilterTelnet(buf, n);
                 if (n == 0) continue;
@@ -214,7 +242,7 @@ public sealed class SshSession : IDisposable
     public void Write(string s)
     {
         var b = Encoding.UTF8.GetBytes(s);
-        if (_telnet) { if (_net == null) return; _net.Write(b, 0, b.Length); _net.Flush(); return; }
+        if (_rawMode) { if (_raw == null) return; _raw.Write(b, 0, b.Length); _raw.Flush(); return; }
         if (_shell == null) return;
         _shell.Write(b, 0, b.Length);
         _shell.Flush();
@@ -427,8 +455,8 @@ public sealed class SshSession : IDisposable
     {
         try { _cts.Cancel(); } catch { }
         try { _shell?.Dispose(); } catch { }
-        try { _net?.Dispose(); _tcp?.Dispose(); } catch { }
-        _net = null; _tcp = null;
+        try { _raw?.Dispose(); _tcp?.Dispose(); _serial?.Dispose(); } catch { }
+        _raw = null; _tcp = null; _serial = null;
         try { _client?.Disconnect(); _client?.Dispose(); } catch { }
         _shell = null; _client = null;
     }

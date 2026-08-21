@@ -60,7 +60,18 @@
                         <TextBlock Style="{StaticResource Muted}" Text="Protocol" VerticalAlignment="Center" Margin="0,0,14,0" />
                         <RadioButton x:Name="ProtoSsh" Content="SSH" IsChecked="True" Checked="Proto_Changed" />
                         <RadioButton x:Name="ProtoTelnet" Content="Telnet  (cleartext — lab use only)" Margin="18,0,0,0" Checked="Proto_Changed" />
+                        <RadioButton x:Name="ProtoSerial" Content="Serial console" Margin="18,0,0,0" Checked="Proto_Changed" />
                     </StackPanel>
+                    <Grid x:Name="SerialPanel" Margin="0,10,0,0" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="140" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Style="{StaticResource Muted}" Text="COM port" /><ComboBox x:Name="ComBox" IsEditable="True" /></StackPanel>
+                        <StackPanel Grid.Column="2"><TextBlock Style="{StaticResource Muted}" Text="Baud" />
+                            <ComboBox x:Name="BaudBox" IsEditable="True">
+                                <ComboBoxItem Content="9600" /><ComboBoxItem Content="19200" /><ComboBoxItem Content="38400" /><ComboBoxItem Content="57600" /><ComboBoxItem Content="115200" />
+                            </ComboBox>
+                        </StackPanel>
+                        <ui:Button Grid.Column="3" Margin="8,18,0,0" Icon="{ui:SymbolIcon ArrowSync24}" ToolTip="Rescan COM ports" Click="RescanCom_Click" />
+                    </Grid>
 
                     <TextBlock Style="{StaticResource SectionTitle}" Text="Credentials" Margin="0,18,0,8" />
                     <StackPanel><TextBlock Style="{StaticResource Muted}" Text="Username" /><ui:TextBox x:Name="UserBox" /></StackPanel>

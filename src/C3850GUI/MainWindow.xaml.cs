@@ -115,7 +115,7 @@ public partial class MainWindow : FluentWindow
         try
         {
             await App.Sessions.ConnectAsync(p);
-            Toast($"Connected to {App.Sessions.Active?.Hostname} ({p.Host})", ControlAppearance.Success);
+            Toast($"Connected to {App.Sessions.Active?.Hostname} ({p.Endpoint})", ControlAppearance.Success);
         }
         catch (Exception ex)
         {

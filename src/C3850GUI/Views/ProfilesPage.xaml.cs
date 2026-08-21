@@ -30,7 +30,8 @@ public partial class ProfilesPage : SwitchPage
         Editor.IsEnabled = true;
         NameBox.Text = p.Name; HostBox.Text = p.Host; PortBox.Value = p.Port; UserBox.Text = p.Username;
         AuthPw.IsChecked = p.Auth == AuthMode.Password; AuthKey.IsChecked = p.Auth == AuthMode.PrivateKey;
-        ProtoSsh.IsChecked = p.Protocol == Protocol.Ssh; ProtoTelnet.IsChecked = p.Protocol == Protocol.Telnet;
+        ProtoSsh.IsChecked = p.Protocol == Protocol.Ssh; ProtoTelnet.IsChecked = p.Protocol == Protocol.Telnet; ProtoSerial.IsChecked = p.Protocol == Protocol.Serial;
+        RescanCom(); ComBox.Text = p.ComPort; BaudBox.Text = p.BaudRate.ToString();
         PwBox.Password = Protector.Unprotect(p.ProtectedPassword);
         EnableBox.Password = Protector.Unprotect(p.ProtectedEnableSecret);
         KeyBox.Text = p.PrivateKeyPath; KeyPassBox.Password = Protector.Unprotect(p.ProtectedKeyPassphrase);
@@ -43,15 +44,19 @@ public partial class ProfilesPage : SwitchPage
     private SwitchProfile? Collect()
     {
         if (_editing == null) return null;
-        if (string.IsNullOrWhiteSpace(HostBox.Text)) { Toast("Host / IP is required.", ControlAppearance.Caution); return null; }
-        if (string.IsNullOrWhiteSpace(UserBox.Text)) { Toast("Username is required.", ControlAppearance.Caution); return null; }
+        var serial = ProtoSerial.IsChecked == true;
+        if (!serial && string.IsNullOrWhiteSpace(HostBox.Text)) { Toast("Host / IP is required.", ControlAppearance.Caution); return null; }
+        if (!serial && string.IsNullOrWhiteSpace(UserBox.Text)) { Toast("Username is required.", ControlAppearance.Caution); return null; }
+        if (serial && string.IsNullOrWhiteSpace(ComBox.Text)) { Toast("Pick a COM port.", ControlAppearance.Caution); return null; }
         var p = _editing;
-        p.Name = string.IsNullOrWhiteSpace(NameBox.Text) ? HostBox.Text.Trim() : NameBox.Text.Trim();
+        p.Name = string.IsNullOrWhiteSpace(NameBox.Text) ? (serial ? ComBox.Text.Trim() : HostBox.Text.Trim()) : NameBox.Text.Trim();
         p.Host = HostBox.Text.Trim();
         p.Port = (int)(PortBox.Value ?? 22);
         p.Username = UserBox.Text.Trim();
         p.Auth = AuthKey.IsChecked == true ? AuthMode.PrivateKey : AuthMode.Password;
-        p.Protocol = ProtoTelnet.IsChecked == true ? Protocol.Telnet : Protocol.Ssh;
+        p.Protocol = serial ? Protocol.Serial : ProtoTelnet.IsChecked == true ? Protocol.Telnet : Protocol.Ssh;
+        p.ComPort = ComBox.Text.Trim().ToUpperInvariant();
+        p.BaudRate = int.TryParse(BaudBox.Text, out var baud) ? baud : 9600;
         p.ProtectedPassword = Protector.Protect(PwBox.Password);
         p.ProtectedEnableSecret = Protector.Protect(EnableBox.Password);
         p.PrivateKeyPath = KeyBox.Text.Trim();
@@ -121,9 +126,23 @@ public partial class ProfilesPage : SwitchPage
         Editor.IsEnabled = false; _editing = null;
     }
 
+    private void RescanCom_Click(object s, RoutedEventArgs e) => RescanCom();
+
+    private void RescanCom()
+    {
+        var cur = ComBox.Text;
+        var ports = System.IO.Ports.SerialPort.GetPortNames().OrderBy(n => n.Length).ThenBy(n => n).ToList();
+        ComBox.ItemsSource = ports;
+        if (cur.Length > 0) ComBox.Text = cur; else if (ports.Count > 0) ComBox.SelectedIndex = 0;
+    }
+
     private void Proto_Changed(object s, RoutedEventArgs e)
     {
-        if (PortBox == null || AuthKey == null) return;
+        if (PortBox == null || AuthKey == null || SerialPanel == null) return;
+        var serial = ProtoSerial.IsChecked == true;
+        SerialPanel.Visibility = serial ? Visibility.Visible : Visibility.Collapsed;
+        HostBox.IsEnabled = !serial; PortBox.IsEnabled = !serial;
+        if (serial) { AuthPw.IsChecked = true; AuthKey.IsEnabled = false; if (string.IsNullOrEmpty(ComBox.Text)) RescanCom(); return; }
         // swap the default port when switching protocols, keep custom ports alone
         if (ProtoTelnet.IsChecked == true) { if (PortBox.Value == 22) PortBox.Value = 23; AuthPw.IsChecked = true; AuthKey.IsEnabled = false; }
         else { if (PortBox.Value == 23) PortBox.Value = 22; AuthKey.IsEnabled = true; }
