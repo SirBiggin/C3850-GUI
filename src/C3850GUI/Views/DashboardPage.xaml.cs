@@ -38,8 +38,8 @@ public partial class DashboardPage : SwitchPage
         var (mods, _) = IosParser.PowerInline((await s.RunAsync("show power inline")).Output);
         StatPoe.Text = mods.Count > 0 ? $"{mods.Sum(m => m.Used):0} / {mods.Sum(m => m.Available):0}" : "n/a";
 
-        var log = (await s.RunAsync("show logging | tail 40")).Output;
-        if (log.StartsWith("%")) log = (await s.RunAsync("show logging")).Output; // older builds lack "| tail"
+        // IOS-XE on the 3850 has no "| tail"; pull the buffer and trim locally.
+        var log = (await s.RunAsync("show logging", default, TimeSpan.FromSeconds(60))).Output;
         var lines = log.Split('\n');
         RecentLog.Text = string.Join('\n', lines.Skip(Math.Max(0, lines.Length - 40)));
         RecentLog.ScrollToEnd();
