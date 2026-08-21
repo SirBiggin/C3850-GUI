@@ -27,13 +27,96 @@ public partial class PortsPage : SwitchPage
         var r = await Session!.RunAsync("show interfaces status");
         _all = IosParser.InterfacesStatus(r.Output);
         ApplyFilter();
-        // front panel: group physical ports by stack member ("Gi1/0/1" → member 1)
-        var groups = _all.Where(p => Regex.IsMatch(p.Name, @"^\w+\d+/\d+/\d+$"))
-            .GroupBy(p => "Switch " + Regex.Match(p.Name, @"(\d+)/").Groups[1].Value)
-            .OrderBy(g => g.Key)
-            .Select(g => new KeyValuePair<string, List<PortInfo>>(g.Key, g.OrderBy(p => PortSortKey(p.Name)).ToList()))
-            .ToList();
-        Panel.ItemsSource = groups;
+        BuildPanel();
+    }
+
+    // ------------------------------------------------------------------ front panel
+
+    private static readonly Regex PhysRe = new(@"^(?<pfx>[A-Za-z]+)(?<sw>\d+)/(?<slot>\d+)/(?<port>\d+)$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Draws each stack member like its faceplate: slot-0 ports either stacked (odd top / even bottom,
+    /// the C3850 arrangement) or in one row, grouped every N ports, with network-module ports (slot 1+) on the right.
+    /// </summary>
+    private void BuildPanel()
+    {
+        PanelHost.Children.Clear();
+        var profile = Session?.Profile;
+        var members = _all.Select(p => PhysRe.Match(p.Name)).Where(m => m.Success).Select(m => int.Parse(m.Groups["sw"].Value)).Distinct().OrderBy(x => x);
+        foreach (var sw in members)
+        {
+            var layout = profile?.MemberLayouts.GetValueOrDefault(sw) ?? "stacked";
+            var group = profile?.PortGroupSize ?? 12;
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 3) };
+
+            var head = new StackPanel { Width = 118, VerticalAlignment = VerticalAlignment.Center };
+            head.Children.Add(new System.Windows.Controls.TextBlock { Text = $"Switch {sw}", FontWeight = FontWeights.SemiBold, FontSize = 12.5 });
+            var pick = new ComboBox { FontSize = 11, Height = 26, MinHeight = 26, Padding = new Thickness(6, 0, 0, 0), Margin = new Thickness(0, 2, 8, 0), Tag = sw };
+            pick.Items.Add(new ComboBoxItem { Content = "Stacked", Tag = "stacked", ToolTip = "Odd ports on top, even below (C3850 faceplate)" });
+            pick.Items.Add(new ComboBoxItem { Content = "Single row", Tag = "row" });
+            pick.SelectedIndex = layout == "row" ? 1 : 0;
+            pick.SelectionChanged += Layout_Changed;
+            head.Children.Add(pick);
+            row.Children.Add(head);
+
+            var ports = _all.Select(p => (p, m: PhysRe.Match(p.Name))).Where(x => x.m.Success && int.Parse(x.m.Groups["sw"].Value) == sw).ToList();
+            foreach (var slot in ports.Select(x => int.Parse(x.m.Groups["slot"].Value)).Distinct().OrderBy(x => x))
+            {
+                var slotPorts = ports.Where(x => int.Parse(x.m.Groups["slot"].Value) == slot)
+                                     .OrderBy(x => int.Parse(x.m.Groups["port"].Value)).Select(x => x.p).ToList();
+                var isModule = slot > 0;
+                row.Children.Add(PortBlock(slotPorts, isModule ? "row" : layout, isModule ? 0 : group, isModule));
+            }
+            PanelHost.Children.Add(row);
+        }
+    }
+
+    private System.Windows.Controls.Grid PortBlock(List<PortInfo> ports, string layout, int groupSize, bool isModule)
+    {
+        var g = new System.Windows.Controls.Grid { Margin = new Thickness(isModule ? 18 : 0, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        bool stacked = layout == "stacked";
+        int rows = stacked ? 2 : 1;
+        for (int r = 0; r < rows; r++) g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        int perGroupCols = stacked ? Math.Max(1, groupSize / 2) : groupSize;
+        var cells = new List<(PortInfo p, int r, int c)>();
+        int cols = 0;
+        for (int i = 0; i < ports.Count; i++)
+        {
+            int r = stacked ? i % 2 : 0;
+            int c = stacked ? i / 2 : i;
+            if (groupSize > 0) c += c / perGroupCols;          // one spacer column after every group
+            cells.Add((ports[i], r, c));
+            cols = Math.Max(cols, c + 1);
+        }
+        for (int c = 0; c < cols; c++)
+        {
+            bool spacer = groupSize > 0 && (c + 1) % (perGroupCols + 1) == 0;
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = spacer ? new GridLength(10) : GridLength.Auto });
+        }
+        foreach (var (p, r, c) in cells)
+        {
+            var b = new Border
+            {
+                Width = isModule ? 26 : 22, Height = 15, Margin = new Thickness(1.5), CornerRadius = new CornerRadius(3), Cursor = Cursors.Hand,
+                Background = (System.Windows.Media.Brush)new Converters.PortStatusBrushConverter().Convert(p.Status, typeof(System.Windows.Media.Brush), null!, null!),
+                Tag = p, ToolTip = $"{p.Name}\n{p.Description}\n{p.Status}  vlan {p.Vlan}  {p.Speed}  {p.Type}",
+                BorderBrush = System.Windows.Media.Brushes.White, BorderThickness = new Thickness(p.IsSelected ? 2 : 0)
+            };
+            b.Child = new System.Windows.Controls.TextBlock { Text = Regex.Match(p.Name, @"(\d+)$").Groups[1].Value, FontSize = 8.5, Foreground = System.Windows.Media.Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.85 };
+            b.MouseLeftButtonDown += PortBox_Click;
+            p.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(PortInfo.IsSelected)) b.BorderThickness = new Thickness(p.IsSelected ? 2 : 0); };
+            System.Windows.Controls.Grid.SetRow(b, r); System.Windows.Controls.Grid.SetColumn(b, c);
+            g.Children.Add(b);
+        }
+        return g;
+    }
+
+    private void Layout_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is not ComboBox cb || cb.Tag is not int sw || Session == null) return;
+        Session.Profile.MemberLayouts[sw] = ((ComboBoxItem)cb.SelectedItem).Tag?.ToString() ?? "stacked";
+        App.Store.Save();
+        BuildPanel();
     }
 
     private static long PortSortKey(string name)
@@ -126,12 +209,80 @@ public partial class PortsPage : SwitchPage
         await ApplyAsync("Access VLAN", lines.ToArray());
     }
 
+    /// <summary>"interface X" or "interface range X" depending on whether the spec is a list/range.</summary>
+    private static string InterfaceCmd(string spec) => (spec.Contains(',') || spec.Contains('-') ? "interface range " : "interface ") + spec.Trim();
+
+    private string SelectionSpec() => string.Join(",", Selected.Select(p => p.Name));
+
     private async void Trunk_Click(object s, RoutedEventArgs e)
     {
-        var sel = NeedSelection(); if (sel == null) return;
-        var f = Dialogs.Form(this, "Trunk port", ("Native VLAN", "1", ""), ("Allowed VLANs", "all", "e.g. 10,20,30-40 or all"));
+        if (!RequireConnection()) return;
+        var f = Dialogs.Form(this, "Trunk / VLANs",
+            ("Interfaces (IOS range syntax)", SelectionSpec(), "e.g. te2/0/6-7  or  gi1/0/1-4,gi1/0/10"),
+            ("Allowed VLANs", "all", "e.g. 1,10,50,60  or  all"),
+            ("Native VLAN", "1", "e.g. 10"),
+            ("Description (optional)", "", ""));
         if (f == null) return;
-        await ApplyAsync("Trunk", "switchport mode trunk", $"switchport trunk native vlan {f["Native VLAN"]}", $"switchport trunk allowed vlan {f["Allowed VLANs"]}");
+        var spec = f["Interfaces (IOS range syntax)"].Trim();
+        if (spec.Length == 0) { Toast("Select ports or type an interface range.", ControlAppearance.Caution); return; }
+        var allowed = f["Allowed VLANs"].Trim().Replace(" ", ""); if (allowed.Length == 0) allowed = "all";
+        if (!int.TryParse(f["Native VLAN"].Trim(), out var nat) || nat < 1 || nat > 4094) { Toast("Native VLAN must be 1-4094.", ControlAppearance.Caution); return; }
+        if (allowed != "all" && !VlanListContains(allowed, nat))
+            Toast($"Note: native VLAN {nat} isn't in the allowed list, so untagged traffic will be dropped. Usually you want it included.", ControlAppearance.Caution, 8);
+        var lines = new List<string> { InterfaceCmd(spec) };
+        if (f["Description (optional)"].Trim().Length > 0) lines.Add($"description {f["Description (optional)"].Trim()}");
+        lines.AddRange(new[] { "switchport mode trunk", $"switchport trunk native vlan {nat}", $"switchport trunk allowed vlan {allowed}", "exit" });
+        if (await ConfigureAsync($"Trunk {spec}", lines.ToArray())) await SafeRefreshAsync();
+    }
+
+    private static bool VlanListContains(string list, int vlan)
+    {
+        foreach (var part in list.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var r = part.Split('-');
+            if (r.Length == 2 && int.TryParse(r[0], out var a) && int.TryParse(r[1], out var b) && vlan >= a && vlan <= b) return true;
+            if (r.Length == 1 && int.TryParse(r[0], out var v) && v == vlan) return true;
+        }
+        return false;
+    }
+
+    private async void PortChannel_Click(object s, RoutedEventArgs e)
+    {
+        if (!RequireConnection()) return;
+        var f = Dialogs.Form(this, "Port-channel (EtherChannel trunk)",
+            ("Member interfaces (IOS range syntax)", SelectionSpec(), "e.g. te1/1/1,te2/1/1"),
+            ("Channel number", "1", "1-128"),
+            ("Mode", "active", "active | passive (LACP)   desirable | auto (PAgP)   on (static)"),
+            ("Allowed VLANs", "all", "e.g. 1,10,50,60 or all"),
+            ("Native VLAN", "1", ""),
+            ("Description (optional)", "", ""));
+        if (f == null) return;
+        var spec = f["Member interfaces (IOS range syntax)"].Trim();
+        if (spec.Length == 0 || !int.TryParse(f["Channel number"], out var ch) || ch < 1 || ch > 128) { Toast("Need member interfaces and a channel number 1-128.", ControlAppearance.Caution); return; }
+        var mode = f["Mode"].Trim().ToLowerInvariant();
+        if (mode is not ("active" or "passive" or "desirable" or "auto" or "on")) { Toast("Mode must be active, passive, desirable, auto or on.", ControlAppearance.Caution); return; }
+        var allowed = f["Allowed VLANs"].Trim().Replace(" ", ""); if (allowed.Length == 0) allowed = "all";
+        var native = f["Native VLAN"].Trim(); if (native.Length == 0) native = "1";
+        var desc = f["Description (optional)"].Trim();
+
+        // Members must match the Po's switchport config or they won't bundle, so both get the same lines.
+        string[] trunk = { "switchport mode trunk", $"switchport trunk native vlan {native}", $"switchport trunk allowed vlan {allowed}" };
+        var lines = new List<string> { InterfaceCmd(spec) };
+        lines.AddRange(trunk);
+        lines.Add($"channel-group {ch} mode {mode}");
+        lines.Add("no shutdown");
+        lines.Add("exit");
+        lines.Add($"interface Port-channel{ch}");
+        if (desc.Length > 0) lines.Add($"description {desc}");
+        lines.AddRange(trunk);
+        lines.Add("no shutdown");
+        lines.Add("exit");
+        if (await ConfigureAsync($"Port-channel{ch} ({mode})", lines.ToArray()))
+        {
+            var r = await RunAsync($"show etherchannel {ch} summary");
+            if (r != null) Dialogs.ShowText(this, $"Port-channel{ch}", r.Output);
+            await SafeRefreshAsync();
+        }
     }
 
     private async void Poe_Click(object s, RoutedEventArgs e)

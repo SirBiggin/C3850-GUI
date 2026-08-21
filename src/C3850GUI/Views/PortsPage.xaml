@@ -23,40 +23,11 @@
             </StackPanel>
         </Grid>
 
-        <!-- front panel -->
+        <!-- front panel (built in code: physical layout per stack member) -->
         <ui:Card Grid.Row="1" Padding="12" Margin="0,0,0,10">
-            <ItemsControl x:Name="Panel">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal" Margin="0,2">
-                            <TextBlock Text="{Binding Key}" Width="54" VerticalAlignment="Center" Style="{StaticResource Muted}" />
-                            <ItemsControl ItemsSource="{Binding Value}">
-                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Width="22" Height="16" Margin="2" CornerRadius="3" Cursor="Hand"
-                                                Background="{Binding Status, Converter={StaticResource PortStatusBrush}}"
-                                                MouseLeftButtonDown="PortBox_Click" Tag="{Binding}">
-                                            <Border.ToolTip>
-                                                <TextBlock><Run Text="{Binding Name}" FontWeight="Bold" /><LineBreak /><Run Text="{Binding Description}" /><LineBreak /><Run Text="{Binding Status}" /><Run Text="  vlan " /><Run Text="{Binding Vlan}" /><Run Text="  " /><Run Text="{Binding Speed}" /></TextBlock>
-                                            </Border.ToolTip>
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                            <Setter Property="BorderBrush" Value="White" /><Setter Property="BorderThickness" Value="2" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel x:Name="PanelHost" />
+            </ScrollViewer>
         </ui:Card>
 
         <!-- actions -->
@@ -66,7 +37,8 @@
             <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon ArrowCounterclockwise24}" Content="Bounce" Click="Bounce_Click" ToolTip="shutdown, wait, no shutdown" />
             <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Edit24}" Content="Description" Click="Desc_Click" />
             <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon BranchFork24}" Content="Access VLAN" Click="AccessVlan_Click" />
-            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon BranchFork24}" Content="Trunk" Click="Trunk_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon BranchFork24}" Content="Trunk / VLANs…" Click="Trunk_Click" ToolTip="Trunk with allowed + native VLANs; accepts typed ranges like te2/0/6-7" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Connector24}" Content="Port-channel…" Click="PortChannel_Click" ToolTip="Bundle selected ports into an EtherChannel trunk" />
             <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Flash24}" Content="PoE" Click="Poe_Click" />
             <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Wrench24}" Content="Speed / Duplex" Click="SpeedDuplex_Click" />
             <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Code24}" Content="Custom config…" Click="Custom_Click" ToolTip="Send any interface-mode lines to the selected ports" />

@@ -34,6 +34,7 @@ public partial class ProfilesPage : SwitchPage
         EnableBox.Password = Protector.Unprotect(p.ProtectedEnableSecret);
         KeyBox.Text = p.PrivateKeyPath; KeyPassBox.Password = Protector.Unprotect(p.ProtectedKeyPassphrase);
         NotesBox.Text = p.Notes;
+        GroupBox.Value = p.PortGroupSize;
         ColorBox.SelectedValue = p.AccentHex;
         if (ColorBox.SelectedIndex < 0) ColorBox.SelectedIndex = 0;
     }
@@ -54,6 +55,7 @@ public partial class ProfilesPage : SwitchPage
         p.PrivateKeyPath = KeyBox.Text.Trim();
         p.ProtectedKeyPassphrase = Protector.Protect(KeyPassBox.Password);
         p.Notes = NotesBox.Text;
+        p.PortGroupSize = (int)(GroupBox.Value ?? 12);
         p.AccentHex = ColorBox.SelectedValue?.ToString() ?? "#2E8BFF";
         return p;
     }

@@ -22,6 +22,11 @@ public partial class SwitchProfile : ObservableObject
     [ObservableProperty] private string _protectedKeyPassphrase = "";
 
     [ObservableProperty] private string _accentHex = "#2E8BFF";
+
+    /// <summary>Front-panel layout per stack member: "stacked" (odd ports top row, even bottom — C3850 default) or "row".</summary>
+    public Dictionary<int, string> MemberLayouts { get; set; } = new();
+    /// <summary>Ports per faceplate group (a visual gap is drawn between groups). 0 = no grouping.</summary>
+    [ObservableProperty] private int _portGroupSize = 12;
     [ObservableProperty] private string _notes = "";
 
     [JsonIgnore] public string Display => string.IsNullOrWhiteSpace(Name) ? Host : $"{Name}  ({Host})";
@@ -34,6 +39,7 @@ public partial class SwitchProfile : ObservableObject
         Id = Id, Name = Name, Host = Host, Port = Port, Username = Username, Auth = Auth,
         PrivateKeyPath = PrivateKeyPath, ProtectedPassword = ProtectedPassword,
         ProtectedEnableSecret = ProtectedEnableSecret, ProtectedKeyPassphrase = ProtectedKeyPassphrase,
-        AccentHex = AccentHex, Notes = Notes
+        AccentHex = AccentHex, Notes = Notes, PortGroupSize = PortGroupSize,
+        MemberLayouts = new Dictionary<int, string>(MemberLayouts)
     };
 }

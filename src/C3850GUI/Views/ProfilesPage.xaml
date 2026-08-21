@@ -82,6 +82,10 @@
                         <ui:PasswordBox x:Name="EnableBox" RevealButtonEnabled="True" />
                     </StackPanel>
 
+                    <StackPanel Margin="0,14,0,0">
+                        <TextBlock Style="{StaticResource Muted}" Text="Front panel: ports per faceplate group (C3850 = 12; 0 = no gaps). Stacked vs single-row is chosen per member on the Ports page." TextWrapping="Wrap" />
+                        <ui:NumberBox x:Name="GroupBox" Width="120" HorizontalAlignment="Left" Minimum="0" Maximum="64" SpinButtonPlacementMode="Hidden" />
+                    </StackPanel>
                     <StackPanel Margin="0,14,0,0"><TextBlock Style="{StaticResource Muted}" Text="Notes" /><ui:TextBox x:Name="NotesBox" AcceptsReturn="True" MinHeight="50" TextWrapping="Wrap" /></StackPanel>
 
                     <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
