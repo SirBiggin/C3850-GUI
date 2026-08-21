@@ -158,9 +158,11 @@ public partial class PortsPage : SwitchPage
     }
 
     /// <summary>Right-click on a row that isn't selected selects just that row, so the menu acts on what you pointed at.</summary>
-    private void Row_RightClick(object sender, MouseButtonEventArgs e)
+    private void Grid_RightClick(object sender, MouseButtonEventArgs e)
     {
-        if (sender is DataGridRow { Item: PortInfo p } && !Grid.SelectedItems.Contains(p)) { Grid.SelectedItems.Clear(); Grid.SelectedItems.Add(p); }
+        DependencyObject? d = e.OriginalSource as DependencyObject;
+        while (d != null && d is not DataGridRow) d = System.Windows.Media.VisualTreeHelper.GetParent(d);
+        if (d is DataGridRow { Item: PortInfo p } && !Grid.SelectedItems.Contains(p)) { Grid.SelectedItems.Clear(); Grid.SelectedItems.Add(p); }
     }
 
     private void PortBox_RightClick(object sender, MouseButtonEventArgs e)

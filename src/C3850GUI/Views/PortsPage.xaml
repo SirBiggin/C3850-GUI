@@ -5,6 +5,28 @@
       xmlns:views="clr-namespace:C3850GUI.Views"
       Title="Ports">
     <Grid Margin="28,20,28,20">
+        <Grid.Resources>
+            <ContextMenu x:Key="PortMenu">
+                <MenuItem Header="Enable  (no shutdown)" Click="Enable_Click" Icon="{ui:SymbolIcon Play24}" />
+                <MenuItem Header="Disable  (shutdown)" Click="Disable_Click" Icon="{ui:SymbolIcon Stop24}" />
+                <MenuItem Header="Bounce" Click="Bounce_Click" Icon="{ui:SymbolIcon ArrowCounterclockwise24}" />
+                <Separator />
+                <MenuItem Header="Description…" Click="Desc_Click" Icon="{ui:SymbolIcon Edit24}" />
+                <MenuItem Header="Access VLAN…" Click="AccessVlan_Click" Icon="{ui:SymbolIcon BranchFork24}" />
+                <MenuItem Header="Trunk / VLANs…" Click="Trunk_Click" Icon="{ui:SymbolIcon BranchFork24}" />
+                <MenuItem Header="Port-channel…" Click="PortChannel_Click" Icon="{ui:SymbolIcon Connector24}" />
+                <MenuItem Header="PoE…" Click="Poe_Click" Icon="{ui:SymbolIcon Flash24}" />
+                <MenuItem Header="Speed / Duplex…" Click="SpeedDuplex_Click" Icon="{ui:SymbolIcon Wrench24}" />
+                <MenuItem Header="Custom config…" Click="Custom_Click" Icon="{ui:SymbolIcon Code24}" />
+                <MenuItem Header="Default interface" Click="Default_Click" Icon="{ui:SymbolIcon ArrowReset24}" />
+                <Separator />
+                <MenuItem Header="Details" Click="Details_Click" Icon="{ui:SymbolIcon Info24}" />
+                <MenuItem Header="Running config" Click="RunConfig_Click" Icon="{ui:SymbolIcon DocumentText24}" />
+                <MenuItem Header="Counters" Click="Counters_Click" Icon="{ui:SymbolIcon Timer24}" />
+                <MenuItem Header="Clear counters" Click="ClearCounters_Click" Icon="{ui:SymbolIcon Broom24}" />
+                <MenuItem Header="MACs on port" Click="Macs_Click" Icon="{ui:SymbolIcon Search24}" />
+            </ContextMenu>
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -53,12 +75,7 @@
 
         <DataGrid x:Name="Grid" Grid.Row="3" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended"
                   CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  SelectionChanged="Grid_SelectionChanged" FontSize="12.5" ContextMenu="{StaticResource PortMenu}">
-            <DataGrid.RowStyle>
-                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-                    <EventSetter Event="PreviewMouseRightButtonDown" Handler="Row_RightClick" />
-                </Style>
-            </DataGrid.RowStyle>
+                  SelectionChanged="Grid_SelectionChanged" FontSize="12.5" ContextMenu="{StaticResource PortMenu}" PreviewMouseRightButtonDown="Grid_RightClick">
             <DataGrid.Columns>
                 <DataGridTemplateColumn Width="28">
                     <DataGridTemplateColumn.CellTemplate>

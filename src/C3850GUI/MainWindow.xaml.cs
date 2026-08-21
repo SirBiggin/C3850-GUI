@@ -16,7 +16,14 @@ public class CachedPageProvider : INavigationViewPageProvider
     private readonly Dictionary<Type, object> _cache = new();
     public object? GetPage(Type pageType)
     {
-        if (!_cache.TryGetValue(pageType, out var p)) { p = Activator.CreateInstance(pageType)!; _cache[pageType] = p; }
+        if (_cache.TryGetValue(pageType, out var p)) return p;
+        try { p = Activator.CreateInstance(pageType)!; }
+        catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException != null)
+        {
+            // surface the real XAML/ctor error instead of "Exception has been thrown by the target of an invocation"
+            throw new InvalidOperationException($"{pageType.Name} failed to load: {ex.InnerException.Message}", ex.InnerException);
+        }
+        _cache[pageType] = p;
         return p;
     }
 }
