@@ -15,7 +15,7 @@
         <Grid>
             <StackPanel>
                 <TextBlock Style="{StaticResource PageTitle}" Text="Ports" />
-                <TextBlock Style="{StaticResource PageSubtitle}" Text="Live from 'show interfaces status'. Select one or more rows to act on them." />
+                <TextBlock Style="{StaticResource PageSubtitle}" Text="Select one or more ports (table or faceplate), then right-click for every action." />
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                 <ui:TextBox x:Name="FilterBox" Width="220" PlaceholderText="Filter (name, desc, vlan, status)" Icon="{ui:SymbolIcon Search24}" TextChanged="Filter_TextChanged" />
@@ -53,7 +53,12 @@
 
         <DataGrid x:Name="Grid" Grid.Row="3" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended"
                   CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                  SelectionChanged="Grid_SelectionChanged" FontSize="12.5">
+                  SelectionChanged="Grid_SelectionChanged" FontSize="12.5" ContextMenu="{StaticResource PortMenu}">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                    <EventSetter Event="PreviewMouseRightButtonDown" Handler="Row_RightClick" />
+                </Style>
+            </DataGrid.RowStyle>
             <DataGrid.Columns>
                 <DataGridTemplateColumn Width="28">
                     <DataGridTemplateColumn.CellTemplate>

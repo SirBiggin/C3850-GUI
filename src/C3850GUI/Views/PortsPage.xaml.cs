@@ -26,6 +26,18 @@ public partial class PortsPage : SwitchPage
     {
         var r = await Session!.RunAsync("show interfaces status");
         _all = IosParser.InterfacesStatus(r.Output);
+        try
+        {
+            var sp = IosParser.InterfacesSwitchport((await Session!.RunAsync("show interfaces switchport", default, TimeSpan.FromSeconds(60))).Output);
+            foreach (var p in _all)
+                if (sp.TryGetValue(p.Name, out var i))
+                {
+                    p.Mode = IosParser.SimplifyMode(i); p.OperMode = i.OperMode; p.AccessVlan = i.AccessVlan;
+                    p.NativeVlan = i.NativeVlan; p.AllowedVlans = i.Allowed; p.VoiceVlan = i.Voice;
+                }
+                else if (p.Vlan.Equals("routed", StringComparison.OrdinalIgnoreCase)) p.Mode = "routed";
+        }
+        catch (Exception ex) { Toast($"show interfaces switchport: {ex.Message}", ControlAppearance.Caution); }
         ApplyFilter();
         BuildPanel();
     }
@@ -104,6 +116,7 @@ public partial class PortsPage : SwitchPage
             };
             b.Child = new System.Windows.Controls.TextBlock { Text = Regex.Match(p.Name, @"(\d+)$").Groups[1].Value, FontSize = 8.5, Foreground = System.Windows.Media.Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.85 };
             b.MouseLeftButtonDown += PortBox_Click;
+            b.MouseRightButtonDown += PortBox_RightClick;
             p.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(PortInfo.IsSelected)) b.BorderThickness = new Thickness(p.IsSelected ? 2 : 0); };
             System.Windows.Controls.Grid.SetRow(b, r); System.Windows.Controls.Grid.SetColumn(b, c);
             g.Children.Add(b);
@@ -142,6 +155,21 @@ public partial class PortsPage : SwitchPage
     {
         foreach (PortInfo p in e.RemovedItems) p.IsSelected = false;
         foreach (PortInfo p in e.AddedItems) p.IsSelected = true;
+    }
+
+    /// <summary>Right-click on a row that isn't selected selects just that row, so the menu acts on what you pointed at.</summary>
+    private void Row_RightClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is DataGridRow { Item: PortInfo p } && !Grid.SelectedItems.Contains(p)) { Grid.SelectedItems.Clear(); Grid.SelectedItems.Add(p); }
+    }
+
+    private void PortBox_RightClick(object sender, MouseButtonEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not PortInfo p) return;
+        if (!Grid.SelectedItems.Contains(p)) { Grid.SelectedItems.Clear(); Grid.SelectedItems.Add(p); }
+        var menu = (ContextMenu)FindResource("PortMenu");
+        menu.PlacementTarget = (UIElement)sender; menu.IsOpen = true;
+        e.Handled = true;
     }
 
     private void PortBox_Click(object sender, MouseButtonEventArgs e)

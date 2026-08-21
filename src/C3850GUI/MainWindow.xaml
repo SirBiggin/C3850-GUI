@@ -43,6 +43,7 @@
                 <ui:NavigationViewItem Content="Stack" TargetPageType="{x:Type views:StackPage}" Icon="{ui:SymbolIcon ServerMultiple20}" />
                 <ui:NavigationViewItem Content="PoE" TargetPageType="{x:Type views:PoePage}" Icon="{ui:SymbolIcon Flash24}" />
                 <ui:NavigationViewItem Content="MAC Table" TargetPageType="{x:Type views:MacTablePage}" Icon="{ui:SymbolIcon Table24}" />
+                <ui:NavigationViewItem Content="Layer 3" TargetPageType="{x:Type views:Layer3Page}" Icon="{ui:SymbolIcon Globe24}" />
                 <ui:NavigationViewItemSeparator />
                 <ui:NavigationViewItem Content="Command Explorer" TargetPageType="{x:Type views:ExplorerPage}" Icon="{ui:SymbolIcon CompassNorthwest24}" />
                 <ui:NavigationViewItem Content="Terminal" TargetPageType="{x:Type views:TerminalPage}" Icon="{ui:SymbolIcon WindowConsole20}" />
