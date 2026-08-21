@@ -133,7 +133,7 @@ public sealed class SshSession : IDisposable
     {
         _rawMode = true;
         _serial = new System.IO.Ports.SerialPort(Profile.ComPort, Profile.BaudRate, System.IO.Ports.Parity.None, 8, System.IO.Ports.StopBits.One)
-        { Handshake = System.IO.Ports.Handshake.None, DtrEnable = true, RtsEnable = true, ReadTimeout = 500, WriteTimeout = 2000, Encoding = Encoding.UTF8 };
+        { Handshake = System.IO.Ports.Handshake.None, DtrEnable = true, RtsEnable = true, ReadTimeout = System.IO.Ports.SerialPort.InfiniteTimeout, WriteTimeout = 5000, Encoding = Encoding.UTF8 };
         _serial.Open();
         _raw = _serial.BaseStream;
         _reader = new Thread(ReadLoop) { IsBackground = true, Name = "serial-reader" };
@@ -250,11 +250,26 @@ public sealed class SshSession : IDisposable
 
     private void BeginCapture() { lock (_captureLock) _capture.Clear(); _capturing = true; }
     private void EndCapture() { _capturing = false; }
-    private string Captured() { lock (_captureLock) return AnsiRe.Replace(_capture.ToString(), "").Replace("\r", ""); }
+    // Syslog lines the console injects into the stream, e.g. "*Aug 21 10:11:12.123: %SYS-5-CONFIG_I: Configured from console by..."
+    private static readonly Regex LogLine = new(@"^\s*(?:\*|\.)?(?:\d+:\s*)?(?:\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:\s+\w+)?:\s*)?%[\w\-]+-\d-[\w\-]+:", RegexOptions.Compiled);
+
+    /// <summary>Captured output with any trailing console log lines removed, so a prompt followed by syslog noise still counts as a prompt.</summary>
+    private string Captured()
+    {
+        string s; lock (_captureLock) s = _capture.ToString();
+        s = AnsiRe.Replace(s, "").Replace("\r", "");
+        if (!_rawMode) return s;
+        var lines = s.Split('\n').ToList();
+        while (lines.Count > 1 && (LogLine.IsMatch(lines[^1]) || lines[^1].Trim().Length == 0)) lines.RemoveAt(lines.Count - 1);
+        return string.Join('\n', lines);
+    }
+
+    /// <summary>Serial links are slow (9600 baud ≈ 1 KB/s); stretch every timeout there.</summary>
+    private TimeSpan Scale(TimeSpan t) => _serial != null ? TimeSpan.FromTicks(t.Ticks * 4) : t;
 
     private async Task<string> WaitForAsync(Func<string, bool> done, TimeSpan timeout, CancellationToken ct)
     {
-        var deadline = DateTime.UtcNow + timeout;
+        var deadline = DateTime.UtcNow + Scale(timeout);
         while (DateTime.UtcNow < deadline)
         {
             ct.ThrowIfCancellationRequested();
