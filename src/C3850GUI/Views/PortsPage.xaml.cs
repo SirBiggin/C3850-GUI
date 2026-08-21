@@ -239,10 +239,13 @@ public partial class PortsPage : SwitchPage
     private async void AccessVlan_Click(object s, RoutedEventArgs e)
     {
         var sel = NeedSelection(); if (sel == null) return;
-        var f = Dialogs.Form(this, "Access port", ("Access VLAN", sel[0].Vlan, "e.g. 20"), ("Voice VLAN (optional)", "", "e.g. 30"));
-        if (f == null || !int.TryParse(f["Access VLAN"], out var v)) return;
-        var lines = new List<string> { "switchport mode access", $"switchport access vlan {v}" };
-        if (int.TryParse(f["Voice VLAN (optional)"], out var voice)) lines.Add($"switchport voice vlan {voice}");
+        var vlans = await LoadVlansAsync(); if (vlans == null) return;
+        int.TryParse(sel[0].AccessVlan.Length > 0 ? sel[0].AccessVlan : sel[0].Vlan, out var curAccess);
+        int.TryParse(sel[0].VoiceVlan, out var curVoice);
+        var r = TrunkDialog.ShowAccess(this, vlans, curAccess, curVoice, sel.Count);
+        if (r == null) return;
+        var lines = new List<string> { "switchport mode access", $"switchport access vlan {r.Value.access}" };
+        lines.Add(r.Value.voice > 0 ? $"switchport voice vlan {r.Value.voice}" : "no switchport voice vlan");
         await ApplyAsync("Access VLAN", lines.ToArray());
     }
 

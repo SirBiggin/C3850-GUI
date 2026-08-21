@@ -186,6 +186,48 @@ public static partial class TrunkDialog
         return new DataTemplate { VisualTree = f };
     }
 
+    /// <summary>Access-port editor: access VLAN + optional voice VLAN, both chosen from the switch's VLAN list.</summary>
+    public static (int access, int voice)? ShowAccess(DependencyObject owner, List<VlanInfo> vlans, int currentAccess, int currentVoice, int count)
+    {
+        var items = vlans.OrderBy(v => v.Id).Select(v => new VlanPick { Id = v.Id, Name = v.Name }).ToList();
+        VlanPick? Find(int id) => items.FirstOrDefault(p => p.Id == id);
+
+        var root = new StackPanel { Margin = new Thickness(22, 14, 22, 18) };
+        root.Children.Add(new TextBlock { Text = count > 1 ? $"Access VLAN — {count} ports" : "Access VLAN", FontSize = 18, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 12) });
+
+        root.Children.Add(new TextBlock { Text = "Access (data) VLAN", Opacity = 0.8 });
+        var access = new ComboBox { Margin = new Thickness(0, 4, 0, 0), FontFamily = new System.Windows.Media.FontFamily("Cascadia Mono, Consolas"), DisplayMemberPath = nameof(VlanPick.Label) };
+        foreach (var p in items) access.Items.Add(p);
+        access.SelectedItem = Find(currentAccess) ?? Find(1) ?? items.FirstOrDefault();
+        root.Children.Add(access);
+
+        root.Children.Add(new TextBlock { Text = "Voice VLAN (optional)", Opacity = 0.8, Margin = new Thickness(0, 12, 0, 0) });
+        var voice = new ComboBox { Margin = new Thickness(0, 4, 0, 0), FontFamily = new System.Windows.Media.FontFamily("Cascadia Mono, Consolas"), DisplayMemberPath = nameof(VlanPick.Label) };
+        var none = new VlanPick { Id = 0, Name = "(none)" };
+        voice.Items.Add(none);
+        foreach (var p in items) voice.Items.Add(p);
+        voice.SelectedItem = currentVoice > 0 ? Find(currentVoice) ?? none : none;
+        root.Children.Add(voice);
+
+        var ok = new Button { Content = "Apply", Appearance = ControlAppearance.Primary, MinWidth = 100, Margin = new Thickness(0, 0, 8, 0), IsDefault = true };
+        var cancel = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true };
+        var btns = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 18, 0, 0) };
+        btns.Children.Add(ok); btns.Children.Add(cancel);
+        root.Children.Add(btns);
+
+        var w = new FluentWindow
+        {
+            Title = "Access VLAN", Width = 420, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, ExtendsContentIntoTitleBar = true,
+            WindowBackdropType = WindowBackdropType.Mica, ShowInTaskbar = false, Content = root,
+            Owner = Window.GetWindow(owner) ?? Application.Current.MainWindow
+        };
+        (int, int)? result = null;
+        ok.Click += (_, _) => { result = ((access.SelectedItem as VlanPick)?.Id ?? 1, (voice.SelectedItem as VlanPick)?.Id ?? 0); w.DialogResult = true; w.Close(); };
+        cancel.Click += (_, _) => { w.DialogResult = false; w.Close(); };
+        return w.ShowDialog() == true ? result : null;
+    }
+
     /// <summary>1,2,3,5,10,11,12 → "1-3,5,10-12" (IOS accepts either; this keeps the line short).</summary>
     public static string Compress(IEnumerable<int> ids)
     {

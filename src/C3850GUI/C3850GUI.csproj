@@ -9,7 +9,7 @@
     <AssemblyName>C3850GUI</AssemblyName>
     <RootNamespace>C3850GUI</RootNamespace>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>1.6.5</Version>
+    <Version>1.7.0</Version>
     <Product>C3850 GUI</Product>
     <Company>SirBiggin</Company>
     <Authors>SirBiggin</Authors>
@@ -33,6 +33,7 @@
   </ItemGroup>
 
 </Project>
+
 
 
 

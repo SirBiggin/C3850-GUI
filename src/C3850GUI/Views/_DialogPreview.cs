@@ -18,6 +18,11 @@ public static class DialogPreview
                 Application.Current.Shutdown();
             });
         }
+        if (Environment.GetCommandLineArgs().Contains("--preview-access"))
+        {
+            var vlans = new List<VlanInfo> { new() { Id = 1, Name = "default" }, new() { Id = 10, Name = "Servers" }, new() { Id = 20, Name = "Workstations" }, new() { Id = 50, Name = "VoIP" } };
+            Application.Current.Dispatcher.BeginInvoke(() => TrunkDialog.ShowAccess(Application.Current.MainWindow, vlans, 20, 50, 3));
+        }
         if (Environment.GetCommandLineArgs().Contains("--preview-trunk"))
         {
             var vlans = new List<VlanInfo> { new() { Id = 1, Name = "default" }, new() { Id = 10, Name = "Servers" }, new() { Id = 20, Name = "Workstations" }, new() { Id = 50, Name = "VoIP" }, new() { Id = 60, Name = "Cameras" }, new() { Id = 99, Name = "Mgmt" } };
