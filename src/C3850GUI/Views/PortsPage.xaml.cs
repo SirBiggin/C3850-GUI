@@ -298,6 +298,26 @@ public partial class PortsPage : SwitchPage
         await ApplyAsync("Speed/duplex", $"speed {f["Speed"]}", $"duplex {f["Duplex"]}");
     }
 
+    private async void Default_Click(object s, RoutedEventArgs e)
+    {
+        var sel = NeedSelection(); if (sel == null) return;
+        var names = string.Join(", ", sel.Select(p => p.ShortName));
+        if (!Dialogs.Confirm(this, "Default interface(s)",
+            $"default interface {(sel.Count > 1 ? "range " : "")}{names}\n\nThis removes ALL configuration from the port(s): description, VLANs, trunking, PoE, port-security, spanning-tree settings, channel-group, etc.\nThe port stays administratively up unless it was default-shut.", "Reset to default", true)) return;
+        // 'default interface' takes a range directly in global config; do it in chunks of 8 to keep lines short.
+        var lines = new List<string>();
+        foreach (var chunk in sel.Chunk(8)) lines.Add($"default interface {(chunk.Length > 1 ? "range " : "")}{string.Join(",", chunk.Select(p => p.Name))}");
+        if (!RequireConnection()) return;
+        try
+        {
+            var r = await Session!.ConfigureAsync(lines);
+            if (r.Error) Toast(r.ErrorText, ControlAppearance.Danger, 8);
+            else Toast($"Defaulted {sel.Count} port{(sel.Count == 1 ? "" : "s")}", ControlAppearance.Success);
+            await SafeRefreshAsync();
+        }
+        catch (Exception ex) { Toast(ex.Message, ControlAppearance.Danger); }
+    }
+
     private async void Custom_Click(object s, RoutedEventArgs e)
     {
         var sel = NeedSelection(); if (sel == null) return;

@@ -41,6 +41,7 @@
             <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Connector24}" Content="Port-channel…" Click="PortChannel_Click" ToolTip="Bundle selected ports into an EtherChannel trunk" />
             <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Flash24}" Content="PoE" Click="Poe_Click" />
             <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Wrench24}" Content="Speed / Duplex" Click="SpeedDuplex_Click" />
+            <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon ArrowReset24}" Content="Default" Click="Default_Click" ToolTip="default interface — wipe the port back to factory config" />
             <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Code24}" Content="Custom config…" Click="Custom_Click" ToolTip="Send any interface-mode lines to the selected ports" />
             <Separator Margin="6,0,6,6" Width="1" />
             <ui:Button Margin="0,0,6,6" Icon="{ui:SymbolIcon Info24}" Content="Details" Click="Details_Click" ToolTip="show interfaces X" />
