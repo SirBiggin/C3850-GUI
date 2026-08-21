@@ -17,6 +17,11 @@ public partial class App : Application
         ApplicationThemeManager.Apply(Store.Settings.Theme == "Light" ? ApplicationTheme.Light : ApplicationTheme.Dark);
         DispatcherUnhandledException += OnUnhandled;
         TaskScheduler.UnobservedTaskException += (_, ev) => ev.SetObserved();
+        AppDomain.CurrentDomain.UnhandledException += (_, ev) =>
+        {
+            // Can't stop the process here, but at least say why it's going down.
+            try { MessageBox.Show((ev.ExceptionObject as Exception)?.ToString() ?? ev.ExceptionObject.ToString(), "C3850 GUI — fatal error", MessageBoxButton.OK, MessageBoxImage.Error); } catch { }
+        };
         var w = new MainWindow();
         MainWindow = w;
         w.Show();

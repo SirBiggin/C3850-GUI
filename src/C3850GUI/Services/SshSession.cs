@@ -235,7 +235,13 @@ public sealed class SshSession : IDisposable
                 DataReceived?.Invoke(text);
             }
         }
-        catch (Exception ex) when (!_cts.IsCancellationRequested) { Disconnected?.Invoke(ex.Message); return; }
+        catch (Exception ex)
+        {
+            // After a deliberate Disconnect() the stream is disposed under us; that's expected, not an error.
+            // Anything escaping this thread would crash the whole process.
+            if (!_cts.IsCancellationRequested) Disconnected?.Invoke(ex.Message);
+            return;
+        }
         if (!_cts.IsCancellationRequested) Disconnected?.Invoke("Connection closed.");
     }
 
